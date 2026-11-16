@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PROVISIONING
+  FULFILLED
+  FAILED
+  REFUNDED
+}
+enum JobKind {
+  PROVISION
+  EMAIL
+}
+enum JobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  authId    String   @unique
+  email     String   @unique
+  role      Role     @default(CUSTOMER)
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Destination {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  isoCode     String   @unique
+  region      String
+  flagEmoji   String
+  imageUrl    String
+  description String
+  active      Boolean  @default(true)
+  plans       Plan[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// All monetary amounts are integer minor units. Catalog base currency is USD.
+model Plan {
+  id               String      @id @default(cuid())
+  destinationId    String
+  destination      Destination @relation(fields: [destinationId], references: [id])
+  provider         String
+  supplierPlanId   String
+  name             String
+  dataAmountMB     Int
+  dataLabel        String
+  validityDays     Int
+  network          String?
+  speed            String?
+  coverage         String[]    @default([])
+  supports5G       Boolean?
+  supportsHotspot  Boolean?
+  supportsTopup    Boolean     @default(false)
+  wholesalePrice   Int
+  retailPrice      Int
+  retailOverride   Int?
+  currency         String      @default("USD")
+  active           Boolean     @default(true)
+  syncedAt         DateTime    @default(now())
+  orderItems       OrderItem[]
+  topUps           TopUp[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  @@unique([provider, supplierPlanId])
+  @@index([destinationId, active])
+}
+
+model Order {
+  id                    String      @id @default(cuid())
+  userId                String?
+  user                  User?       @relation(fields: [userId], references: [id])
+  email                 String
+  firstName             String?
+  lastName              String?
+  status                OrderStatus @default(PENDING_PAYMENT)
+  subtotal              Int
+  discount              Int         @default(0)
+  tax                   Int         @default(0)
+  total                 Int
+  currency              String      @default("USD")
+  stripePaymentIntentId String?     @unique
+  checkoutSessionId     String?     @unique
+  checkoutKey           String      @unique
+  checkoutFingerprint   String
+  supplierTestMode      Boolean     @default(true)
+  couponId              String?
+  coupon                Coupon?     @relation(fields: [couponId], references: [id])
+  items                 OrderItem[]
+  esims                 Esim[]
+  payment               Payment?
+  topUp                 TopUp?
+  jobs                  FulfillmentJob[]
+  auditLogs             AuditLog[]
+  emailSentAt           DateTime?
+  emailVersion          Int         @default(0)
+  emailAccessNonce      String?
+  emailRequestedAt      DateTime?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  @@index([email, createdAt])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id               String         @id @default(cuid())
+  orderId          String
+  order            Order          @relation(fields: [orderId], references: [id])
+  planId           String
+  plan             Plan           @relation(fields: [planId], references: [id])
+  name             String
+  destinationName  String
+  dataAmountMB     Int
+  dataLabel        String
+  validityDays     Int
+  unitPrice        Int
+  supplierPlanId   String
+  provider         String
+  supplierOrder    SupplierOrder?
+  esim             Esim?
+}
+
+model Esim {
+  id              String        @id @default(cuid())
+  orderId         String
+  order           Order         @relation(fields: [orderId], references: [id])
+  orderItemId     String        @unique
+  orderItem       OrderItem     @relation(fields: [orderItemId], references: [id])
+  supplierOrderId String        @unique
+  supplierOrder   SupplierOrder @relation(fields: [supplierOrderId], references: [id])
+  providerEsimId  String
+  iccid           String
+  activationCode  String?
+  qrCodeData      String?
+  qrCodeUrl       String?
+  activationUrl   String?
+  testMode        Boolean       @default(false)
+  smdpAddress     String?
+  status          String
+  dataTotalMb     Int
+  dataUsedMb      Int?
+  expiresAt       DateTime?
+  topUps          TopUp[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id])
+  provider      String
+  transactionId String   @unique
+  amount        Int
+  currency      String
+  status        String
+  createdAt     DateTime @default(now())
+}
+
+model SupplierOrder {
+  id               String    @id @default(cuid())
+  orderItemId      String    @unique
+  orderItem        OrderItem @relation(fields: [orderItemId], references: [id])
+  provider         String
+  reference        String    @unique
+  externalOrderId  String?
+  clientId         String?
+  status           String    @default("RESERVED")
+  // Store sanitized error categories only; never raw upstream payloads.
+  errorCode        String?
+  esim             Esim?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  @@unique([provider, externalOrderId])
+}
+
+model TopUp {
+  id           String   @id @default(cuid())
+  orderId      String   @unique
+  order        Order    @relation(fields: [orderId], references: [id])
+  esimId       String
+  esim         Esim     @relation(fields: [esimId], references: [id])
+  planId       String
+  plan         Plan     @relation(fields: [planId], references: [id])
+  reference    String   @unique
+  externalId   String?
+  status       String   @default("PENDING")
+  createdAt    DateTime @default(now())
+}
+
+model Coupon {
+  id               String   @id @default(cuid())
+  code             String   @unique
+  percentOff       Int      @default(0)
+  fixedOff         Int      @default(0)
+  maxUses          Int?
+  usedCount        Int      @default(0)
+  minSubtotal      Int      @default(0)
+  active           Boolean  @default(true)
+  expiresAt        DateTime?
+  orders           Order[]
+  createdAt        DateTime @default(now())
+}
+
+model Device {
+  id           String  @id @default(cuid())
+  brand        String
+  model        String
+  supportsEsim Boolean @default(true)
+  notes        String
+  @@unique([brand, model])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  orderId   String?
+  order     Order?   @relation(fields: [orderId], references: [id])
+  actorId   String?
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+  @@index([orderId, createdAt])
+}
+
+model WebhookEvent {
+  id        String   @id
+  type      String
+  createdAt DateTime @default(now())
+}
+
+// A full refund can arrive before the Checkout payment webhook.
+model PaymentReversal {
+  transactionId String   @id
+  eventId       String   @unique
+  createdAt     DateTime @default(now())
+}
+
+model FulfillmentJob {
+  id          String    @id @default(cuid())
+  orderId     String
+  order       Order     @relation(fields: [orderId], references: [id])
+  kind        JobKind
+  status      JobStatus @default(PENDING)
+  attempts    Int       @default(0)
+  runAfter    DateTime  @default(now())
+  lockedUntil DateTime?
+  lockToken   String?
+  lastError   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  @@unique([orderId, kind])
+  @@index([status, runAfter])
+}
+
+model RateLimit {
+  key       String   @id
+  count     Int
+  expiresAt DateTime
+  @@index([expiresAt])
+}
