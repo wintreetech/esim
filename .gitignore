@@ -9,6 +9,7 @@ src/generated/
 .DS_Store
 *.log
 .vercel/
+.netlify/
 
 test-results/
 playwright-report/

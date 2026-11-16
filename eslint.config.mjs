@@ -6,6 +6,7 @@ export default defineConfig([
   ...nextTs,
   globalIgnores([
     ".next/**",
+    ".netlify/**",
     ".local/**",
     "artifacts/**",
     "src/generated/**",
