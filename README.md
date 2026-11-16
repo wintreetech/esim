@@ -121,6 +121,8 @@ Configuration: `MARKUP_PERCENT`, `FIXED_MARKUP_CENTS`, `MIN_MARGIN_CENTS`, `TAX_
 
 The catalog cron refreshes every six hours and checkout requires a sync within the last 24 hours. Sync preserves manual visibility/price overrides, deactivates removed SKUs, and disables overrides made unsafe by a new wholesale cost. Extend `src/lib/data/destinations.ts` to expand launch destinations; page routes and provider interfaces remain data-driven.
 
+Catalog writes use parameterized PostgreSQL upserts in batches of at most 100 plans, with a 30-second transaction limit and a 10-second acquisition wait per destination. This avoids the default five-second interactive-transaction failure caused by two remote database round trips per plan. All batches, margin-review audit entries and stale-plan deactivation commit together for a destination; a failed batch rolls back that destination's changes. Existing plan IDs, order references, creation dates, retail overrides and manually hidden status are preserved.
+
 ## Stripe setup
 
 Use Stripe test credentials while `RESELLPORTAL_TEST_MODE=true`. Run the official Stripe CLI:

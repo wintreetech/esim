@@ -1,4 +1,6 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
+import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { getProvider } from "./provider";
 import { calculatePrice, pricingConfig } from "@/lib/pricing/calculate-price";
@@ -8,6 +10,7 @@ export async function syncCatalog() {
   const providerName = configuredProvider(),
     provider = getProvider();
   const destinations = await provider.getDestinations();
+  const pricing = pricingConfig();
   // Initial launch allowlist; adding destinations is data-driven, not a new route.
   const allowed = new Set(destinationSeeds.map((d) => d.isoCode));
   let importedPlans = 0,
@@ -19,74 +22,87 @@ export async function syncCatalog() {
       create: { ...fields, isoCode: code },
       update: { name: fields.name, description: fields.description },
     });
-    const plans = await provider.getPlans(code);
+    const plans = (await provider.getPlans(code)).map((plan) => ({
+      ...plan,
+      retailPrice: calculatePrice({
+        wholesale: plan.wholesalePrice,
+        ...pricing,
+        taxPercent: 0,
+      }).subtotal,
+    }));
     importedPlans += plans.length;
     // Fetch and validate the complete response before deactivating stale inventory.
-    await db().$transaction(async (tx) => {
-      for (const p of plans) {
-        const retail = calculatePrice({
-          wholesale: p.wholesalePrice,
-          ...pricingConfig(),
-          taxPercent: 0,
-        }).subtotal;
-        const data = {
-          destinationId: destination.id,
-          name: p.name,
-          dataAmountMB: p.dataAmountMB,
-          dataLabel: p.dataLabel,
-          validityDays: p.validityDays,
-          network: p.network,
-          speed: p.speed,
-          coverage: p.coverage,
-          supports5G: p.supports5G,
-          supportsHotspot: p.supportsHotspot,
-          supportsTopup: p.supportsTopup,
-          wholesalePrice: p.wholesalePrice,
-          retailPrice: retail,
-          currency: p.currency,
-          syncedAt: new Date(),
-        };
-        const existing = await tx.plan.findUnique({
-          where: {
-            provider_supplierPlanId: {
-              provider: providerName,
-              supplierPlanId: p.id,
-            },
-          },
-        });
-        const unsafe =
-          existing?.retailOverride != null &&
-          existing.retailOverride <
-            p.wholesalePrice + pricingConfig().minMargin;
-        await tx.plan.upsert({
-          where: {
-            provider_supplierPlanId: {
-              provider: providerName,
-              supplierPlanId: p.id,
-            },
-          },
-          create: { ...data, provider: providerName, supplierPlanId: p.id },
-          update: { ...data, ...(unsafe ? { active: false } : {}) },
-        });
-        if (unsafe)
-          await tx.auditLog.create({
-            data: {
-              action: "PLAN_MARGIN_REVIEW_REQUIRED",
-              detail: existing.id,
-            },
+    const deactivated = await db().$transaction(
+      async (tx) => {
+        const syncedAt = new Date();
+        // One parameterized upsert per batch replaces two round trips per plan.
+        // Keep all batches and stale-stock retirement atomic for this destination.
+        for (let offset = 0; offset < plans.length; offset += 100) {
+          const rows = plans.slice(offset, offset + 100).map((p) => {
+            const coverage = p.coverage.length
+              ? Prisma.sql`ARRAY[${Prisma.join(p.coverage)}]::text[]`
+              : Prisma.sql`ARRAY[]::text[]`;
+            return Prisma.sql`(
+            ${randomUUID()}, ${destination.id}, ${providerName}, ${p.id},
+            ${p.name}, ${p.dataAmountMB}, ${p.dataLabel}, ${p.validityDays},
+            ${p.network}, ${p.speed}, ${coverage}, ${p.supports5G},
+            ${p.supportsHotspot}, ${p.supportsTopup}, ${p.wholesalePrice},
+            ${p.retailPrice}, ${p.currency}, ${syncedAt}, ${syncedAt}, ${syncedAt}
+          )`;
           });
-      }
-      const deactivated = await tx.plan.updateMany({
-        where: {
-          destinationId: destination.id,
-          provider: providerName,
-          active: true,
-          supplierPlanId: { notIn: plans.map((p) => p.id) },
-        },
-        data: { active: false },
-      });
-      deactivatedPlans += deactivated.count;
-    });
+          const saved = await tx.$queryRaw<
+            { id: string; unsafe: boolean }[]
+          >(Prisma.sql`
+          INSERT INTO "Plan" (
+            "id", "destinationId", "provider", "supplierPlanId", "name",
+            "dataAmountMB", "dataLabel", "validityDays", "network", "speed",
+            "coverage", "supports5G", "supportsHotspot", "supportsTopup",
+            "wholesalePrice", "retailPrice", "currency", "syncedAt", "createdAt", "updatedAt"
+          ) VALUES ${Prisma.join(rows)}
+          ON CONFLICT ("provider", "supplierPlanId") DO UPDATE SET
+            "destinationId" = EXCLUDED."destinationId",
+            "name" = EXCLUDED."name",
+            "dataAmountMB" = EXCLUDED."dataAmountMB",
+            "dataLabel" = EXCLUDED."dataLabel",
+            "validityDays" = EXCLUDED."validityDays",
+            "network" = EXCLUDED."network",
+            "speed" = EXCLUDED."speed",
+            "coverage" = EXCLUDED."coverage",
+            "supports5G" = EXCLUDED."supports5G",
+            "supportsHotspot" = EXCLUDED."supportsHotspot",
+            "supportsTopup" = EXCLUDED."supportsTopup",
+            "wholesalePrice" = EXCLUDED."wholesalePrice",
+            "retailPrice" = EXCLUDED."retailPrice",
+            "currency" = EXCLUDED."currency",
+            "syncedAt" = EXCLUDED."syncedAt",
+            "updatedAt" = EXCLUDED."updatedAt",
+            "active" = CASE
+              WHEN "Plan"."retailOverride" < EXCLUDED."wholesalePrice" + ${pricing.minMargin}
+              THEN false ELSE "Plan"."active" END
+          RETURNING "id", COALESCE("retailOverride" < "wholesalePrice" + ${pricing.minMargin}, false) AS "unsafe"
+        `);
+          const unsafe = saved.filter((p) => p.unsafe);
+          if (unsafe.length)
+            await tx.auditLog.createMany({
+              data: unsafe.map((p) => ({
+                action: "PLAN_MARGIN_REVIEW_REQUIRED",
+                detail: p.id,
+              })),
+            });
+        }
+        return tx.plan.updateMany({
+          where: {
+            destinationId: destination.id,
+            provider: providerName,
+            active: true,
+            supplierPlanId: { notIn: plans.map((p) => p.id) },
+          },
+          data: { active: false },
+        });
+      },
+      { maxWait: 10_000, timeout: 30_000 },
+    );
+    deactivatedPlans += deactivated.count;
   }
   return {
     destinations: destinations.filter((d) => allowed.has(d.code)).length,
