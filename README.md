@@ -63,6 +63,16 @@ For an optional local PostgreSQL server, run `docker compose up -d` with Docker 
 
 `db:deploy` applies committed migrations. The new integration migration deactivates legacy `mock`/`supplier` plans and preserves historical orders, payments and eSIMs. `db:seed` upserts destination/device content only; it never creates plans, wholesale costs, retail prices, users or coupons. `db:sync` imports the authenticated ResellPortal catalog and derives retail prices server-side. Use `npm run db:migrate -- --name change_name` for future schema changes.
 
+### Netlify with Supabase PostgreSQL
+
+Set `DATABASE_URL` to the complete Supabase transaction-pooler URI (port 6543), and `DIRECT_DATABASE_URL` to the session-pooler URI (port 5432). Replace the password placeholder with your percent-encoded database password. In Netlify, the Value field contains only the URI, without the variable name or surrounding quotes. Make both variables available to the production build and functions. Set `NODE_VERSION=24` and `NEXT_PUBLIC_APP_URL` to the final HTTPS site URL.
+
+The app, seed CLI and admin promotion CLI share `src/lib/database-config.ts`. For Supabase hosts, it adds the bundled public Supabase Root 2021 CA to Node's trusted roots and retains certificate and hostname verification. This fixes `P1011: self-signed certificate in certificate chain` on hosts whose default trust store does not contain Supabase's root. URL SSL options are normalized before constructing the pg pool so they cannot overwrite the configured trust store. Other database providers and local PostgreSQL retain their own connection settings. Explicit certificate-file URL settings are preserved. The public CA expires on 26 April 2031; its download source and fingerprint are recorded in `src/lib/supabase-ca.ts`.
+
+For the first production deploy, use `npm run db:deploy && npm run db:seed && npm run db:sync && npm run build` with publish directory `.next`. Once the initialization deploy succeeds, the build command can return to `npm run build`. Redeploy after environment changes. These commands do not place supplier orders. Keep `RESELLPORTAL_TEST_MODE=true` and `RESELLPORTAL_ALLOW_LIVE_ORDERS=false` during preview acceptance.
+
+Netlify does not execute `vercel.json` cron definitions. Before accepting live payments, configure a scheduler to call the authenticated fulfillment endpoint every minute and the catalog endpoint every six hours. Checkout rejects supplier prices older than 24 hours.
+
 ### Connection check
 
 `npm run resellportal:check` performs **read-only** requests to `/balance`, `/clients` and `/esim-packages`, then reports authentication, package counts and mode. It never places an order, creates a client or sends an email. Credentials, customer details, wallet values and portal passwords are not printed.

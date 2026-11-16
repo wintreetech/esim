@@ -3,10 +3,11 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { destinationSeeds } from "../src/lib/data/destinations";
 import { deviceSeeds } from "../src/lib/data/devices";
+import { databaseConfig } from "../src/lib/database-config";
 if (!process.env.DATABASE_URL)
   throw new Error("Set DATABASE_URL before seeding.");
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: new PrismaPg(databaseConfig(process.env.DATABASE_URL)),
 });
 async function main() {
   for (const destination of destinationSeeds)
