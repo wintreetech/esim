@@ -40,7 +40,7 @@ export function AdminAction({
         {busy ? "Working…" : children}
       </Button>
       {message && (
-        <p style={{ fontSize: 11, marginTop: 8 }} role="status">
+        <p style={{ fontSize: 14, marginTop: 8 }} role="status">
           {message}
         </p>
       )}

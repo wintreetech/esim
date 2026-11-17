@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
-import { exchangeRate } from "@/lib/currency";
-import {
-  resellPortalConfigured,
-  resellPortalTestMode,
-} from "@/lib/esim/config";
+import { checkoutConfigured } from "@/lib/payments/config";
+import { paymentProviderName } from "@/lib/payments/config";
+import { requireTransactworldConfig } from "@/lib/payments/transactworld-config";
 export const metadata: Metadata = {
   title: "Your travel bag",
   robots: { index: false, follow: false },
@@ -15,15 +13,7 @@ export default async function Checkout({
   searchParams: Promise<{ topup?: string; plan?: string; cancelled?: string }>;
 }) {
   const p = await searchParams;
-  const configured = Boolean(
-    process.env.DATABASE_URL &&
-    process.env.STRIPE_SECRET_KEY &&
-    process.env.RESEND_API_KEY &&
-    process.env.ORDER_ACCESS_SECRET &&
-    resellPortalConfigured() &&
-    (resellPortalTestMode() ||
-      process.env.RESELLPORTAL_ALLOW_LIVE_ORDERS === "true"),
-  );
+  const configured = checkoutConfigured();
   return (
     <div className="container">
       <div className="page-hero">
@@ -38,7 +28,11 @@ export default async function Checkout({
       </div>
       <CheckoutForm
         configured={configured}
-        rate={exchangeRate()}
+        paymentCurrencies={
+          configured && paymentProviderName() === "transactworld"
+            ? requireTransactworldConfig().supportedCurrencies
+            : undefined
+        }
         topUpEsimId={p.topup}
         initialPlanId={p.plan}
       />

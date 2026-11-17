@@ -14,7 +14,7 @@ export default async function Destinations({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const { destinations, rate } = await catalogContext();
+  const { destinations } = await catalogContext();
   return (
     <div className="container">
       <div className="page-hero">
@@ -26,11 +26,7 @@ export default async function Destinations({
         </p>
       </div>
       <section style={{ paddingBottom: 80 }}>
-        <DestinationExplorer
-          destinations={destinations}
-          rate={rate}
-          initialQuery={q}
-        />
+        <DestinationExplorer destinations={destinations} initialQuery={q} />
       </section>
     </div>
   );

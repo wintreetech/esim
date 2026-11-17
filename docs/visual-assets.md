@@ -25,3 +25,7 @@ Destination prompt template:
 | `europe.webp`        | Paris, France: Eiffel Tower above charming cream Parisian buildings and the Seine, leafy trees and romantic warm late-afternoon light        |
 
 The Thailand card uses the original hero coast visual. WebP encoding preserves the generated composition and avoids runtime requests to a third-party photo host.
+
+## Payment marks
+
+`public/images/payments/visa.svg` and `mastercard.svg` are unchanged vector payment-card artwork from [Aaron Fagan's SVG Credit Card & Payment Icons](https://github.com/aaronfagan/svg-credit-card-payment-icons), retrieved through the jsDelivr mirror of its `master/flat-rounded/` directory. The repository's Apache 2.0 license is included as `public/images/payments/LICENSE.txt`. Visa and Mastercard remain the marks of their respective owners. The artwork is served locally in the footer and checkout, with accessible brand labels; no additional payment method or wallet integration is implied.

@@ -1,21 +1,31 @@
 import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
 import { requireAccountPage } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { accountOrders, ordersPerPage } from "@/lib/account-orders";
+import { ResendOrderEmail } from "@/components/account/resend-order-email";
+import { emailConfigured } from "@/lib/email-config";
 import { formatMoney, type Currency } from "@/lib/currency";
 import { label } from "@/lib/utils";
-export default async function Orders() {
+export default async function Orders({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const user = await requireAccountPage();
-  const orders = await db().order.findMany({
-    where: { OR: [{ userId: user.id }, { email: user.email }] },
-    include: { items: true },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
+  const { orders, page, pages, count } = await accountOrders(
+    user,
+    (await searchParams).page,
+  );
   return (
     <>
       <h1>Your adventures, all here.</h1>
-      <p>Orders placed with {user.email}. Showing your latest 100.</p>
+      <p>Orders placed with {user.email}, including guest purchases.</p>
+      {count > 0 && (
+        <p className="order-count">
+          Showing {(page - 1) * ordersPerPage + 1}–
+          {Math.min(page * ordersPerPage, count)} of {count} orders.
+        </p>
+      )}
       {!orders.length && (
         <div className="empty-state">
           <ShoppingBag />
@@ -49,8 +59,34 @@ export default async function Orders() {
               View order →
             </Link>
           </div>
+          {o.status === "FULFILLED" && (
+            <ResendOrderEmail orderId={o.id} configured={emailConfigured()} />
+          )}
         </article>
       ))}
+      {pages > 1 && (
+        <nav className="orders-pagination" aria-label="Order pages">
+          {page > 1 && (
+            <Link
+              className="button button-secondary"
+              href={`/account/orders?page=${page - 1}`}
+            >
+              ← Previous
+            </Link>
+          )}
+          <span>
+            Page {page} of {pages}
+          </span>
+          {page < pages && (
+            <Link
+              className="button button-secondary"
+              href={`/account/orders?page=${page + 1}`}
+            >
+              Next →
+            </Link>
+          )}
+        </nav>
+      )}
     </>
   );
 }

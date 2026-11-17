@@ -8,11 +8,9 @@ import { Price } from "@/components/ui/price";
 import { Button } from "@/components/ui/button";
 export function PlanCard({
   plan,
-  rate,
   popular = false,
 }: {
   plan: PublicPlan;
-  rate: number;
   popular?: boolean;
 }) {
   const add = useCart((s) => s.add);
@@ -71,7 +69,7 @@ export function PlanCard({
       </div>
       <div className="plan-price">
         <strong>
-          <Price cents={plan.retailPrice} rate={rate} />
+          <Price cents={plan.retailPrice} />
         </strong>
         <span>one-time payment</span>
       </div>

@@ -25,17 +25,30 @@ import { fulfillOrder, runJobs } from "@/lib/orders/provision";
 import { startCheckout } from "@/lib/orders/checkout";
 import { quoteOrder } from "@/lib/orders/quote";
 import { checkoutSchema } from "@/lib/validators/checkout";
+import { confirmedDevice } from "../fixtures/device-check";
 import { getCatalog } from "@/lib/catalog";
 import { canAccessOrder, createOrderToken } from "@/lib/order-access";
 import { POST as stripeWebhook } from "@/app/api/stripe/webhook/route";
 import { POST as adminMutation } from "@/app/api/admin/route";
 import { HttpError } from "@/lib/http";
 import {
+  reconcileTransactworld,
+  processTransactworldCallback,
+} from "@/lib/payments/transactworld-confirmation";
+import { responseChecksum, type Inquiry } from "@/lib/payments/transactworld";
+import { requireTransactworldConfig } from "@/lib/payments/transactworld-config";
+import { TransactworldPaymentProvider } from "@/lib/payments/transactworld-provider";
+import { requestOrderEmail } from "@/lib/orders/resend-email";
+import { accountOrders } from "@/lib/account-orders";
+import {
   reconcileSupplierOrder,
   authorizeSupplierRetry,
 } from "@/lib/orders/reconcile-supplier";
 const mocks = vi.hoisted(() => ({
   useRealProvider: false,
+  useRealPayment: false,
+  fxAvailable: true,
+  eurRate: 0.9,
   user: vi.fn(
     async (): Promise<{ id: string; email: string; role: string } | null> =>
       null,
@@ -57,6 +70,16 @@ vi.mock("next/headers", () => ({
   }),
 }));
 vi.mock("@/lib/email", () => ({ sendEsimEmail: mocks.send }));
+vi.mock("@/lib/exchange-rates", () => ({
+  getExchangeRates: vi.fn(async () => ({
+    base: "USD",
+    rates: { USD: 1, EUR: mocks.eurRate, AUD: 1.5 },
+    source: "Frankfurter",
+    rateDate: new Date().toISOString().slice(0, 10),
+    checkedAt: new Date().toISOString(),
+    status: mocks.fxAvailable ? "current" : "unavailable",
+  })),
+}));
 vi.mock("@/lib/esim/provider", async () => {
   const { MockEsimProvider } = await import("../fixtures/mock-esim-provider");
   const { ResellPortalProvider } =
@@ -69,16 +92,19 @@ vi.mock("@/lib/esim/provider", async () => {
   };
 });
 vi.mock("@/lib/payments/provider", () => ({
-  getPaymentProvider: () => ({
-    createCheckout: async (input: { orderId: string }) => ({
-      id: `cs_test_${input.orderId}`,
-      url: `https://checkout.stripe.com/test/${input.orderId}`,
-    }),
-    getCheckout: async (id: string) => ({
-      id,
-      url: `https://checkout.stripe.com/test/${id}`,
-    }),
-  }),
+  getPaymentProvider: () =>
+    mocks.useRealPayment
+      ? new TransactworldPaymentProvider()
+      : {
+          createCheckout: async (input: { orderId: string }) => ({
+            id: `cs_test_${input.orderId}`,
+            url: `https://checkout.stripe.com/test/${input.orderId}`,
+          }),
+          getCheckout: async (id: string) => ({
+            id,
+            url: `https://checkout.stripe.com/test/${id}`,
+          }),
+        },
 }));
 let pg: PGlite, server: PGLiteSocketServer, planId: string;
 beforeAll(async () => {
@@ -113,6 +139,13 @@ beforeAll(async () => {
   );
   vi.stubEnv("RESEND_API_KEY", "re_integration_fake");
   vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_fake");
+  vi.stubEnv("PAYMENT_PROVIDER", "stripe");
+  vi.stubEnv("PAYMENTS_ENABLED", "yes");
+  vi.stubEnv("EMAIL_FROM", "Roamly <hello@example.com>");
+  vi.stubEnv(
+    "CRON_SECRET",
+    "integration-only-worker-secret-at-least-32-characters",
+  );
   vi.stubEnv("STRIPE_WEBHOOK_SECRET", "whsec_test");
   vi.stubEnv("NEXT_PUBLIC_APP_URL", "http://localhost:3000");
   const provider = new MockEsimProvider();
@@ -158,6 +191,13 @@ afterAll(async () => {
 });
 beforeEach(() => {
   mocks.useRealProvider = false;
+  mocks.useRealPayment = false;
+  vi.stubEnv("PAYMENT_PROVIDER", "stripe");
+  vi.stubEnv("PAYMENTS_ENABLED", "yes");
+  vi.stubEnv("RESELLPORTAL_TEST_MODE", "true");
+  vi.stubEnv("RESELLPORTAL_ALLOW_LIVE_ORDERS", "false");
+  mocks.fxAvailable = true;
+  mocks.eurRate = 0.9;
   vi.restoreAllMocks();
   mocks.user.mockResolvedValue(null);
   mocks.cookies.clear();
@@ -173,6 +213,7 @@ async function pendingOrder() {
       currency: "USD",
       idempotencyKey: key,
       acceptedTerms: true,
+      deviceCheck: confirmedDevice(),
     }),
   );
   return db().order.findUniqueOrThrow({ where: { checkoutKey: key } });
@@ -191,7 +232,477 @@ function payment(
     currency: o.currency,
   };
 }
+describe("TransactWorld checkout and independently verified capture", () => {
+  let paymentSequence = 900000;
+  beforeEach(() => {
+    mocks.useRealPayment = true;
+    for (const [key, value] of Object.entries({
+      PAYMENT_PROVIDER: "transactworld",
+      MEMBER_ID: "1000",
+      WORKING_KEY: "integration-only-working-key",
+      TW_ENVIRONMENT: "sandbox",
+      TW_SUPPORTED_CURRENCIES: "USD,EUR,AUD",
+      TW_AUTH_TOKEN: "integration-only-token",
+      NEXT_PUBLIC_APP_URL: "https://store.example.com",
+      RESELLPORTAL_TEST_MODE: "yes",
+      RESELLPORTAL_ALLOW_LIVE_ORDERS: "no",
+    }))
+      vi.stubEnv(key, value);
+  });
+  async function twOrder(currency: "USD" | "EUR" | "AUD" = "USD") {
+    const key = randomUUID();
+    const quote = await quoteOrder({ planIds: [planId], currency });
+    const input = checkoutSchema.parse({
+      email: "gateway@example.com",
+      planIds: [planId],
+      currency,
+      expectedTotal: quote.total,
+      idempotencyKey: key,
+      acceptedTerms: true,
+      deviceCheck: confirmedDevice(),
+    });
+    const form = await startCheckout(input, "203.0.113.10");
+    const order = await db().order.findUniqueOrThrow({
+      where: { checkoutKey: key },
+    });
+    return { order, form, input };
+  }
+  function verified(
+    order: Awaited<ReturnType<typeof twOrder>>["order"],
+    patch = {},
+  ) {
+    return {
+      paymentId: String(++paymentSequence),
+      merchantTransactionId: order.checkoutSessionId!.slice(5),
+      amount: (order.total / 100).toFixed(2),
+      currency: order.currency,
+      status: "capturesuccess",
+      transactionStatus: "Y" as const,
+      refundamount: "0.00",
+      chargebackamount: "0.00",
+      ...patch,
+    };
+  }
+  it("returns a real signed hosted form and keeps retry reference, currency and locked amount stable", async () => {
+    const { order, form, input } = await twOrder("EUR");
+    expect(form.method).toBe("POST");
+    expect(form.url).toBe(
+      "https://sandbox.transactworld.com/transaction/Checkout",
+    );
+    expect(form.fields).toMatchObject({
+      email: "gateway@example.com",
+      currency: "EUR",
+      amount: (order.total / 100).toFixed(2),
+    });
+    expect(JSON.stringify(form)).not.toContain("integration-only-working-key");
+    mocks.eurRate = 0.95;
+    const retry = await startCheckout(input, "203.0.113.11");
+    expect(retry.fields?.merchantTransactionId).toBe(
+      form.fields?.merchantTransactionId,
+    );
+    expect(retry.fields?.amount).toBe(form.fields?.amount);
+    expect(
+      await db().fulfillmentJob.count({ where: { orderId: order.id } }),
+    ).toBe(0);
+  });
+  it("rejects an unapproved payment currency before reserving an order or coupon", async () => {
+    vi.stubEnv("TW_SUPPORTED_CURRENCIES", "USD,EUR");
+    const count = await db().order.count();
+    await expect(twOrder("AUD")).rejects.toMatchObject({ status: 400 });
+    expect(await db().order.count()).toBe(count);
+  });
+  it("rejects invalid merchant authentication before creating a payable order", async () => {
+    vi.stubEnv("TW_AUTH_TOKEN", "");
+    vi.stubEnv("WORKING_KEY", `unverified-${randomUUID()}`);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({ paymentId: null, result: { code: 20016 } }),
+      ),
+    );
+    const count = await db().order.count();
+    await expect(twOrder()).rejects.toMatchObject({ status: 503 });
+    expect(await db().order.count()).toBe(count);
+  });
+  it("confirms duplicate and concurrent captures once and provisions only one eSIM", async () => {
+    const { order } = await twOrder("AUD");
+    const result = verified(order);
+    const inquiry = vi.fn<Inquiry>().mockResolvedValue(result);
+    await Promise.all([
+      reconcileTransactworld(order.checkoutSessionId!, inquiry),
+      reconcileTransactworld(order.checkoutSessionId!, inquiry),
+    ]);
+    expect(
+      await db().payment.count({
+        where: { orderId: order.id, provider: "transactworld" },
+      }),
+    ).toBe(1);
+    expect(
+      await db().fulfillmentJob.count({
+        where: { orderId: order.id, kind: "PROVISION" },
+      }),
+    ).toBe(1);
+    await fulfillOrder(order.id);
+    await fulfillOrder(order.id);
+    expect(await db().esim.count({ where: { orderId: order.id } })).toBe(1);
+    expect(
+      (await db().order.findUniqueOrThrow({ where: { id: order.id } }))
+        .stripePaymentIntentId,
+    ).toBeNull();
+  });
+  it("leaves preauthorization, pending and declined responses unfulfilled", async () => {
+    for (const [status, transactionStatus] of [
+      ["preauthsuccess", "Y"],
+      ["pending", "P"],
+      ["capturefailed", "N"],
+    ] as const) {
+      const { order } = await twOrder();
+      await reconcileTransactworld(
+        order.checkoutSessionId!,
+        vi
+          .fn<Inquiry>()
+          .mockResolvedValue(verified(order, { status, transactionStatus })),
+      );
+      expect(await db().payment.count({ where: { orderId: order.id } })).toBe(
+        0,
+      );
+      expect(
+        await db().fulfillmentJob.count({ where: { orderId: order.id } }),
+      ).toBe(0);
+    }
+  });
+  it("rejects independently verified amount, currency, reference and provider-ID mismatches", async () => {
+    const { order } = await twOrder();
+    for (const patch of [
+      { amount: "0.01" },
+      { currency: "EUR" },
+      { merchantTransactionId: "a".repeat(64) },
+      { paymentId: "bad" },
+    ]) {
+      await expect(
+        reconcileTransactworld(
+          order.checkoutSessionId!,
+          vi.fn<Inquiry>().mockResolvedValue(verified(order, patch)),
+        ),
+      ).rejects.toMatchObject({ status: 400 });
+    }
+    await expect(
+      reconcileTransactworld(
+        order.checkoutSessionId!,
+        vi
+          .fn<Inquiry>()
+          .mockResolvedValue(verified(order, { paymentId: "123" })),
+        "456",
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(await db().payment.count({ where: { orderId: order.id } })).toBe(0);
+  });
+  it("requires authenticated Inquiry even for a signed successful hosted return and recovers after an outage", async () => {
+    const { order, form } = await twOrder();
+    const remote = verified(order);
+    const c = requireTransactworldConfig();
+    const body = {
+      paymentId: remote.paymentId,
+      merchantTransactionId: form.fields!.merchantTransactionId,
+      amount: remote.amount,
+      currency: remote.currency,
+      status: "capturesuccess",
+      checksum: responseChecksum(
+        c,
+        remote.paymentId,
+        form.fields!.merchantTransactionId,
+        remote.amount,
+        "capturesuccess",
+      ),
+    };
+    const request = () =>
+      new Request("https://store.example.com/return", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(body),
+      });
+    const fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValue(new Error("gateway unavailable"));
+    await expect(
+      processTransactworldCallback(
+        request(),
+        body.merchantTransactionId,
+        "return",
+      ),
+    ).rejects.toMatchObject({ status: 503 });
+    expect(await db().payment.count({ where: { orderId: order.id } })).toBe(0);
+    fetch.mockImplementation(async () => new Response(JSON.stringify(remote)));
+    await expect(
+      processTransactworldCallback(
+        request(),
+        body.merchantTransactionId,
+        "return",
+      ),
+    ).resolves.toMatchObject({ paid: true });
+    await expect(
+      processTransactworldCallback(
+        request(),
+        body.merchantTransactionId,
+        "return",
+      ),
+    ).resolves.toMatchObject({ paid: true });
+    expect(await db().payment.count({ where: { orderId: order.id } })).toBe(1);
+  });
+  it("does not trust short notification Y as captured funds", async () => {
+    const { order, form } = await twOrder();
+    const remote = verified(order, { status: "preauthsuccess" });
+    const body = {
+      paymentId: remote.paymentId,
+      merchantTransactionId: form.fields!.merchantTransactionId,
+      amount: remote.amount,
+      transactionStatus: "Y",
+      checksum: responseChecksum(
+        requireTransactworldConfig(),
+        remote.paymentId,
+        form.fields!.merchantTransactionId,
+        remote.amount,
+        "Y",
+      ),
+    };
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () => new Response(JSON.stringify(remote)),
+    );
+    await processTransactworldCallback(
+      new Request("https://store.example.com/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+      body.merchantTransactionId,
+      "notify",
+    );
+    expect(await db().payment.count({ where: { orderId: order.id } })).toBe(0);
+  });
+  it("rejects forged callbacks before performing Inquiry", async () => {
+    const { order, form } = await twOrder();
+    const fetch = vi.spyOn(globalThis, "fetch");
+    await expect(
+      processTransactworldCallback(
+        new Request("https://store.example.com/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentId: "123",
+            merchantTransactionId: form.fields!.merchantTransactionId,
+            amount: (order.total / 100).toFixed(2),
+            transactionStatus: "Y",
+            checksum: "0".repeat(32),
+          }),
+        }),
+        form.fields!.merchantTransactionId,
+        "notify",
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it("never fulfills a fully refunded capture or a partial refund needing review", async () => {
+    const { order } = await twOrder();
+    const remote = verified(order);
+    const inquiry = vi.fn<Inquiry>().mockResolvedValue({
+      ...remote,
+      refundamount: remote.amount,
+      status: "refundsuccess",
+    });
+    await expect(
+      reconcileTransactworld(order.checkoutSessionId!, inquiry),
+    ).resolves.toMatchObject({ refunded: true });
+    inquiry.mockResolvedValue(remote);
+    await reconcileTransactworld(order.checkoutSessionId!, inquiry);
+    expect(
+      (await db().order.findUniqueOrThrow({ where: { id: order.id } })).status,
+    ).toBe("REFUNDED");
+    expect(
+      await db().fulfillmentJob.count({
+        where: { orderId: order.id, kind: "PROVISION" },
+      }),
+    ).toBe(0);
+    const partial = await twOrder();
+    await expect(
+      reconcileTransactworld(
+        partial.order.checkoutSessionId!,
+        vi
+          .fn<Inquiry>()
+          .mockResolvedValue(verified(partial.order, { refundamount: "0.01" })),
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+  it("blocks a sandbox payment after a live environment switch and before any wallet or gateway call", async () => {
+    const { order } = await twOrder();
+    vi.stubEnv("TW_ENVIRONMENT", "live");
+    const inquiry = vi.fn<Inquiry>();
+    await expect(
+      reconcileTransactworld(order.checkoutSessionId!, inquiry),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(inquiry).not.toHaveBeenCalled();
+  });
+});
+describe("Customer order history and email recovery", () => {
+  async function readyOrder() {
+    mocks.user.mockResolvedValue(null);
+    const order = await pendingOrder();
+    await confirmPayment(payment(order));
+    await fulfillOrder(order.id);
+    await db().order.update({
+      where: { id: order.id },
+      data: {
+        emailRequestedAt: new Date(Date.now() - 61000),
+        emailSentAt: new Date(Date.now() - 60000),
+      },
+    });
+    await db().fulfillmentJob.updateMany({
+      where: { orderId: order.id, kind: "EMAIL" },
+      data: { status: "DONE" },
+    });
+    return order;
+  }
+  it("only lets the order owner or a valid guest link request an email", async () => {
+    const order = await readyOrder();
+    await expect(requestOrderEmail(order.id)).rejects.toMatchObject({
+      status: 404,
+    });
+    mocks.user.mockResolvedValue({
+      id: "stranger",
+      email: "someone-else@example.com",
+      role: "CUSTOMER",
+    });
+    await expect(requestOrderEmail(order.id)).rejects.toMatchObject({
+      status: 404,
+    });
+    mocks.user.mockResolvedValue(null);
+    mocks.cookies.set(`roamly_order_${order.id}`, createOrderToken(order.id));
+    await requestOrderEmail(order.id);
+    expect(
+      (await db().order.findUniqueOrThrow({ where: { id: order.id } }))
+        .emailVersion,
+    ).toBe(1);
+  });
+  it("queues one email for concurrent resend requests without provisioning another eSIM", async () => {
+    const order = await readyOrder();
+    mocks.user.mockResolvedValue({
+      id: "verified-buyer",
+      email: order.email,
+      role: "CUSTOMER",
+    });
+    const purchase = vi.spyOn(MockEsimProvider.prototype, "createOrder");
+    const results = await Promise.allSettled([
+      requestOrderEmail(order.id),
+      requestOrderEmail(order.id),
+    ]);
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
+    const stored = await db().order.findUniqueOrThrow({
+      where: { id: order.id },
+    });
+    expect(stored).toMatchObject({
+      email: order.email,
+      emailVersion: 1,
+      status: "FULFILLED",
+      emailSentAt: null,
+    });
+    await runJobs(1, { orderId: order.id, kind: "EMAIL" });
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+    expect(mocks.send).toHaveBeenCalledWith(order.id);
+    expect(purchase).not.toHaveBeenCalled();
+    expect(await db().esim.count({ where: { orderId: order.id } })).toBe(1);
+    expect(await db().payment.count({ where: { orderId: order.id } })).toBe(1);
+  });
+  it("refuses email recovery for unpaid and refunded orders", async () => {
+    const unpaid = await pendingOrder();
+    mocks.user.mockResolvedValue({
+      id: "buyer",
+      email: unpaid.email,
+      role: "CUSTOMER",
+    });
+    await expect(requestOrderEmail(unpaid.id)).rejects.toMatchObject({
+      status: 409,
+    });
+    const refunded = await readyOrder();
+    await recordRefund(`pi_${refunded.id}`, `resend-refund-${randomUUID()}`);
+    mocks.user.mockResolvedValue({
+      id: "buyer",
+      email: refunded.email,
+      role: "CUSTOMER",
+    });
+    await expect(requestOrderEmail(refunded.id)).rejects.toMatchObject({
+      status: 409,
+    });
+  });
+  it("does not overwrite an email being delivered by a worker", async () => {
+    const order = await readyOrder();
+    mocks.user.mockResolvedValue({
+      id: "buyer",
+      email: order.email,
+      role: "CUSTOMER",
+    });
+    await db().fulfillmentJob.updateMany({
+      where: { orderId: order.id, kind: "EMAIL" },
+      data: {
+        status: "RUNNING",
+        lockedUntil: new Date(Date.now() + 60000),
+        lockToken: "owned-worker",
+      },
+    });
+    await expect(requestOrderEmail(order.id)).rejects.toMatchObject({
+      status: 409,
+    });
+    expect(
+      (await db().order.findUniqueOrThrow({ where: { id: order.id } }))
+        .emailVersion,
+    ).toBe(0);
+  });
+  it("shows all guest and account purchases across pages without disclosing another buyer's orders", async () => {
+    const email = `history-${randomUUID()}@example.com`;
+    const user = await db().user.create({
+      data: { authId: randomUUID(), email },
+    });
+    await db().order.createMany({
+      data: Array.from({ length: 106 }, (_, index) => ({
+        email: index === 105 ? "old-purchase-email@example.com" : email,
+        userId: index === 105 ? user.id : null,
+        status: "PENDING_PAYMENT",
+        subtotal: 1000,
+        total: 1000,
+        checkoutKey: randomUUID(),
+        checkoutFingerprint: randomUUID(),
+      })),
+    });
+    const other = await pendingOrder();
+    const first = await accountOrders(user, "1"),
+      last = await accountOrders(user, "9999");
+    expect(first.count).toBe(106);
+    expect(first.orders).toHaveLength(20);
+    expect(last).toMatchObject({ count: 106, pages: 6, page: 6 });
+    expect(last.orders).toHaveLength(6);
+    expect(first.orders.some((order) => order.id === other.id)).toBe(false);
+    const ids = new Set<string>();
+    for (let page = 1; page <= first.pages; page++)
+      for (const order of (await accountOrders(user, String(page))).orders)
+        ids.add(order.id);
+    expect(ids.size).toBe(106);
+  });
+});
 describe("payment and fulfillment with a real PostgreSQL engine", () => {
+  it("records device confirmations as self-reports alongside the order", async () => {
+    const order = await pendingOrder();
+    const audit = await db().auditLog.findFirstOrThrow({
+      where: { orderId: order.id, action: "DEVICE_CHECK_CONFIRMED" },
+    });
+    expect(JSON.parse(audit.detail!)).toMatchObject({
+      model: "iPhone 13 Pro",
+      esim: "yes",
+      unlocked: "yes",
+      source: "customer_self_report",
+    });
+  });
   it("runs the actual ResellPortal adapter through a paid database order without duplicate purchases", async () => {
     const plan = await db().plan.findFirstOrThrow({
       where: { destination: { isoCode: "US" } },
@@ -248,6 +759,7 @@ describe("payment and fulfillment with a real PostgreSQL engine", () => {
           currency: "USD",
           idempotencyKey: key,
           acceptedTerms: true,
+          deviceCheck: confirmedDevice(),
         }),
       );
       const order = await db().order.findUniqueOrThrow({
@@ -289,6 +801,100 @@ describe("payment and fulfillment with a real PostgreSQL engine", () => {
       mocks.useRealProvider = false;
     }
   });
+  it("quotes and locks EUR and AUD amounts using the server's reference rates", async () => {
+    for (const currency of ["EUR", "AUD"] as const) {
+      const q = await quoteOrder({ planIds: [planId], currency });
+      const key = randomUUID();
+      await startCheckout(
+        checkoutSchema.parse({
+          email: "currency@example.com",
+          planIds: [planId],
+          currency,
+          expectedTotal: q.total,
+          idempotencyKey: key,
+          acceptedTerms: true,
+          deviceCheck: confirmedDevice(),
+        }),
+      );
+      const order = await db().order.findUniqueOrThrow({
+        where: { checkoutKey: key },
+        include: { items: true, auditLogs: true },
+      });
+      expect(order.currency).toBe(currency);
+      expect(order.total).toBe(q.total);
+      expect(order.items[0].unitPrice).toBe(q.items[0].unitPrice);
+      const audit = order.auditLogs.find(
+        (entry) => entry.action === "EXCHANGE_RATE_LOCKED",
+      );
+      expect(JSON.parse(audit!.detail!)).toMatchObject({
+        currency,
+        rate: q.rate,
+        source: "Frankfurter",
+      });
+      mocks.eurRate = 1.1;
+      // Retrying an existing checkout must not reprice an already-created order.
+      await startCheckout(
+        checkoutSchema.parse({
+          email: "currency@example.com",
+          planIds: [planId],
+          currency,
+          expectedTotal: q.total,
+          idempotencyKey: key,
+          acceptedTerms: true,
+          deviceCheck: confirmedDevice(),
+        }),
+      );
+      expect(
+        (await db().order.findUniqueOrThrow({ where: { checkoutKey: key } }))
+          .total,
+      ).toBe(q.total);
+      mocks.eurRate = 0.9;
+    }
+  });
+  it("totals the individually rounded displayed item prices in a converted cart", async () => {
+    mocks.eurRate = 0.9004;
+    const plans = await db().plan.findMany({
+      where: { retailPrice: 1000 },
+      take: 2,
+    });
+    expect(plans).toHaveLength(2);
+    const q = await quoteOrder({
+      planIds: plans.map((p) => p.id),
+      currency: "EUR",
+    });
+    expect(q.subtotal).toBe(1800);
+    expect(q.subtotal).toBe(
+      q.items.reduce((sum, item) => sum + item.unitPrice, 0),
+    );
+  });
+  it("requires a review when the rate changes after the displayed quote", async () => {
+    const q = await quoteOrder({ planIds: [planId], currency: "EUR" });
+    const before = await db().order.count();
+    mocks.eurRate = 1.1;
+    await expect(
+      startCheckout(
+        checkoutSchema.parse({
+          email: "currency@example.com",
+          planIds: [planId],
+          currency: "EUR",
+          expectedTotal: q.total,
+          idempotencyKey: randomUUID(),
+          acceptedTerms: true,
+          deviceCheck: confirmedDevice(),
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(await db().order.count()).toBe(before);
+  });
+  it("keeps USD checkout available and stops converted quotes when rates are unavailable", async () => {
+    mocks.fxAvailable = false;
+    await expect(
+      quoteOrder({ planIds: [planId], currency: "EUR" }),
+    ).rejects.toMatchObject({ status: 503 });
+    expect(
+      (await quoteOrder({ planIds: [planId], currency: "USD" })).rate,
+    ).toBe(1);
+  });
   it("seeds the ten-destination catalog without exposing wholesale fields", async () => {
     const catalog = await getCatalog();
     expect(catalog).toHaveLength(10);
@@ -323,6 +929,7 @@ describe("payment and fulfillment with a real PostgreSQL engine", () => {
       currency: "USD",
       idempotencyKey: key,
       acceptedTerms: true,
+      deviceCheck: confirmedDevice(),
       price: 1,
       total: 1,
     });
@@ -659,6 +1266,7 @@ describe("payment and fulfillment with a real PostgreSQL engine", () => {
         coupon: code,
         idempotencyKey: key,
         acceptedTerms: true,
+        deviceCheck: confirmedDevice(),
       }),
     );
     const o = await db().order.findUniqueOrThrow({
@@ -794,6 +1402,7 @@ describe("payment and fulfillment with a real PostgreSQL engine", () => {
         currency: "USD",
         idempotencyKey: key,
         acceptedTerms: true,
+        deviceCheck: confirmedDevice(),
         topUpEsimId: esim.id,
       }),
     );

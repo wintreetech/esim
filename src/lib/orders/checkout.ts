@@ -7,44 +7,38 @@ import { quoteOrder } from "./quote";
 import type { CheckoutInput } from "@/lib/validators/checkout";
 import { getPaymentProvider } from "@/lib/payments/provider";
 import { track } from "@/lib/analytics";
+import { resellPortalTestMode } from "@/lib/esim/config";
 import {
-  requireResellPortalCredentials,
-  requireOrderMode,
-  resellPortalTestMode,
-} from "@/lib/esim/config";
-export async function startCheckout(input: CheckoutInput) {
+  paymentProviderName,
+  requireCheckoutSetup,
+} from "@/lib/payments/config";
+import { requireTransactworldConfig } from "@/lib/payments/transactworld-config";
+export async function startCheckout(input: CheckoutInput, shopperIp?: string) {
+  requireCheckoutSetup();
   if (
-    !process.env.STRIPE_SECRET_KEY ||
-    !process.env.ORDER_ACCESS_SECRET ||
-    process.env.ORDER_ACCESS_SECRET.length < 32 ||
-    !process.env.RESEND_API_KEY
+    paymentProviderName() === "transactworld" &&
+    !requireTransactworldConfig().supportedCurrencies.includes(input.currency)
   )
     throw new HttpError(
-      503,
-      "Checkout is being configured. Please come back soon.",
+      400,
+      `${input.currency} payments are unavailable. Choose ${requireTransactworldConfig().supportedCurrencies.join(" or ")}.`,
     );
-  requireResellPortalCredentials();
-  requireOrderMode();
-  const stripeTest = /^(sk|rk)_test_/.test(process.env.STRIPE_SECRET_KEY);
-  const stripeLive = /^(sk|rk)_live_/.test(process.env.STRIPE_SECRET_KEY);
-  if (
-    (resellPortalTestMode() && !stripeTest) ||
-    (!resellPortalTestMode() && !stripeLive)
-  )
-    throw new HttpError(503, "Checkout is temporarily unavailable.");
   const user = await getUser();
   const fingerprint = createHash("sha256")
     .update(
       JSON.stringify({
         email: input.email,
         currency: input.currency,
+        expectedTotal: input.expectedTotal ?? null,
         plans: [...input.planIds].sort(),
         coupon: input.coupon || null,
         topUp: input.topUpEsimId || null,
         userId: user?.id || null,
         supplierTestMode: resellPortalTestMode(),
+        paymentProvider: paymentProviderName(),
         firstName: input.firstName || null,
         lastName: input.lastName || null,
+        deviceModel: input.deviceCheck.model,
       }),
     )
     .digest("hex");
@@ -52,6 +46,7 @@ export async function startCheckout(input: CheckoutInput) {
     where: { checkoutKey: input.idempotencyKey },
   });
   const payment = getPaymentProvider();
+  await payment.assertReady?.();
   if (order) {
     if (order.checkoutFingerprint !== fingerprint)
       throw new HttpError(
@@ -64,14 +59,29 @@ export async function startCheckout(input: CheckoutInput) {
         "This checkout is closed. Start a new checkout.",
       );
     if (order.checkoutSessionId) {
-      const session = await payment.getCheckout(order.checkoutSessionId);
+      const session = await payment.getCheckout(
+        order.checkoutSessionId,
+        shopperIp,
+      );
       if (!session.url)
         throw new HttpError(409, "Checkout expired. Please start again.");
-      return { url: session.url };
+      return {
+        url: session.url,
+        method: session.method,
+        fields: session.fields,
+      };
     }
   }
   if (!order) {
     const q = await quoteOrder(input);
+    if (
+      (input.expectedTotal !== undefined && input.expectedTotal !== q.total) ||
+      (input.currency !== "USD" && input.expectedTotal === undefined)
+    )
+      throw new HttpError(
+        409,
+        "Prices have updated. Please review the refreshed total before continuing.",
+      );
     try {
       order = await db().$transaction(async (tx) => {
         if (q.coupon) {
@@ -105,6 +115,31 @@ export async function startCheckout(input: CheckoutInput) {
             tax: q.tax,
             total: q.total,
             currency: q.currency,
+            auditLogs: {
+              create: [
+                {
+                  action: "DEVICE_CHECK_CONFIRMED",
+                  detail: JSON.stringify({
+                    ...input.deviceCheck,
+                    source: "customer_self_report",
+                  }),
+                },
+                ...(q.fx
+                  ? [
+                      {
+                        action: "EXCHANGE_RATE_LOCKED",
+                        detail: JSON.stringify({
+                          currency: q.currency,
+                          rate: q.rate,
+                          rateDate: q.fx.rateDate,
+                          checkedAt: q.fx.checkedAt,
+                          source: q.fx.source,
+                        }),
+                      },
+                    ]
+                  : []),
+              ],
+            },
             couponId: q.coupon?.id,
             items: {
               create: q.plans.map((p) => ({
@@ -149,6 +184,9 @@ export async function startCheckout(input: CheckoutInput) {
     currency: order.currency,
     description: `${input.topUpEsimId ? "Travel eSIM top-up" : "Travel eSIM order"} · ${order.id.slice(-8).toUpperCase()}`,
     expiresAt: Math.floor(order.createdAt.getTime() / 1000) + 31 * 60,
+    shopperIp,
+    firstName: order.firstName || undefined,
+    lastName: order.lastName || undefined,
   });
   await db().order.update({
     where: { id: order.id },
@@ -159,5 +197,5 @@ export async function startCheckout(input: CheckoutInput) {
     currency: order.currency,
     total: order.total,
   });
-  return { url: session.url };
+  return { url: session.url, method: session.method, fields: session.fields };
 }

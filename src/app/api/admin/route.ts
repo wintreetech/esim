@@ -9,6 +9,7 @@ import { runJobs } from "@/lib/orders/provision";
 import { syncCatalog } from "@/lib/esim/sync";
 import { getStripe } from "@/lib/stripe";
 import { recordRefund } from "@/lib/orders/payment-confirmation";
+import { reconcileTransactworld } from "@/lib/payments/transactworld-confirmation";
 import { rateLimit } from "@/lib/rate-limit";
 import {
   reconcileSupplierOrder,
@@ -114,6 +115,22 @@ export async function POST(request: Request) {
       const order = await db().order.findUniqueOrThrow({
         where: { id: input.orderId },
       });
+      if (order.checkoutSessionId?.startsWith("tw_")) {
+        const result = await reconcileTransactworld(order.checkoutSessionId);
+        if (!result.refunded)
+          throw new HttpError(
+            400,
+            "The payment gateway has not confirmed a full refund. Refund in the merchant dashboard first.",
+          );
+        await db().auditLog.create({
+          data: {
+            actorId: user.id,
+            orderId: order.id,
+            action: "ADMIN_REFUND_RECONCILED",
+          },
+        });
+        return NextResponse.json({ success: true });
+      }
       if (!order.stripePaymentIntentId)
         throw new HttpError(400, "No recorded payment.");
       const intent = await getStripe().paymentIntents.retrieve(

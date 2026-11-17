@@ -1,7 +1,13 @@
 "use client";
 import { useCart } from "@/lib/cart";
 import { convertCents, formatMoney } from "@/lib/currency";
-export function Price({ cents, rate = 84 }: { cents: number; rate?: number }) {
+import { useExchangeRates } from "./currency-provider";
+export function Price({ cents }: { cents: number }) {
   const currency = useCart((s) => s.currency);
-  return <>{formatMoney(convertCents(cents, currency, rate), currency)}</>;
+  const { rates } = useExchangeRates();
+  if (!rates[currency])
+    return (
+      <span title="Currency conversion is temporarily unavailable">—</span>
+    );
+  return <>{formatMoney(convertCents(cents, currency, rates), currency)}</>;
 }

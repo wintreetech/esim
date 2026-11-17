@@ -26,7 +26,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { FaqList } from "@/components/ui/faq-list";
 export const dynamic = "force-dynamic";
 export default async function Home() {
-  const { destinations, rate } = await catalogContext();
+  const { destinations } = await catalogContext();
   const featured = ["thailand", "japan", "indonesia", "europe"].flatMap(
     (slug) => {
       const d = destinations.find((x) => x.slug === slug);
@@ -74,7 +74,7 @@ export default async function Home() {
                 <Link
                   href="/compatibility"
                   className="text-link"
-                  style={{ fontSize: 10 }}
+                  style={{ fontSize: 14 }}
                 >
                   Check your phone <ArrowUpRight size={12} />
                 </Link>
@@ -148,7 +148,7 @@ export default async function Home() {
             <ArrowUpRight size={16} />
           </Link>
         </div>
-        <DestinationExplorer destinations={destinations} rate={rate} compact />
+        <DestinationExplorer destinations={destinations} compact />
         <div className="destinations-footer">
           <ButtonLink secondary href="/destinations">
             Find your next destination
@@ -219,7 +219,7 @@ export default async function Home() {
             {
               icon: LockKeyhole,
               title: "A safer way to check out",
-              text: "Pay through Stripe’s secure checkout. We never store your card details.",
+              text: "Pay securely online. We never store your card details.",
             },
             {
               icon: MessageCircle,
@@ -258,7 +258,7 @@ export default async function Home() {
           </div>
           <div className="plan-grid">
             {featured.map((p, i) => (
-              <PlanCard key={p.id} plan={p} rate={rate} popular={i === 1} />
+              <PlanCard key={p.id} plan={p} popular={i === 1} />
             ))}
           </div>
         </section>

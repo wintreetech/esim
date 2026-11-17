@@ -10,7 +10,14 @@ export async function POST(request: Request) {
     await rateLimit(request, "login", 5, 300);
     const { email } = await jsonBody(
       request,
-      z.object({ email: z.email().max(254) }),
+      z.object({
+        email: z
+          .string()
+          .trim()
+          .email()
+          .max(254)
+          .transform((value) => value.toLowerCase()),
+      }),
     );
     const client = await supabase();
     const { error } = await client.auth.signInWithOtp({

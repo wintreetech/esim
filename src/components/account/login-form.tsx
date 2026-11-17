@@ -1,11 +1,20 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 export function LoginForm({ configured }: { configured: boolean }) {
   const [message, setMessage] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  useEffect(() => {
+    if (!cooldown) return;
+    const timer = setTimeout(
+      () => setCooldown((value) => Math.max(0, value - 1)),
+      1000,
+    );
+    return () => clearTimeout(timer);
+  }, [cooldown]);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -21,6 +30,7 @@ export function LoginForm({ configured }: { configured: boolean }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       setMessage(data.message);
+      setCooldown(60);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Please try again.");
     } finally {
@@ -48,8 +58,9 @@ export function LoginForm({ configured }: { configured: boolean }) {
       </label>
       {!configured && (
         <p className="preview-notice">
-          Sign-in is being set up. Add your Supabase environment variables to
-          enable accounts.
+          Account sign-in is temporarily unavailable. You can still open an
+          existing order using the private link in your eSIM email, or contact
+          support for help.
         </p>
       )}
       {error && (
@@ -62,12 +73,22 @@ export function LoginForm({ configured }: { configured: boolean }) {
           {message}
         </p>
       )}
-      <Button className="full-width" disabled={!configured || busy}>
-        {busy ? "Sending your link…" : "Send my sign-in link"}
+      <Button
+        className="full-width"
+        disabled={!configured || busy || cooldown > 0}
+      >
+        {busy
+          ? "Sending your link…"
+          : cooldown
+            ? `Send again in ${cooldown}s`
+            : message
+              ? "Send another sign-in link"
+              : "Send my sign-in link"}
         <ArrowRight size={16} />
       </Button>
-      <p style={{ fontSize: 11, marginBottom: 0 }}>
-        Checking a guest order? Your eSIM email contains a private access link.
+      <p style={{ fontSize: 14, marginBottom: 0 }}>
+        Use the same email as checkout to see your orders, including guest
+        purchases. Check your spam folder if the link does not arrive.
       </p>
     </form>
   );

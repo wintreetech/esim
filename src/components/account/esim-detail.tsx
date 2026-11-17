@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { accessibleEsim } from "@/lib/order-access";
 import { UsageRefresh } from "./usage-refresh";
 import { db } from "@/lib/db";
+import { envBoolean } from "@/lib/env-boolean";
 export async function EsimDetail({
   esim: e,
 }: {
@@ -11,7 +12,7 @@ export async function EsimDetail({
 }) {
   const qr = e.testMode ? null : await esimQrImage(e).catch(() => null);
   const topups =
-    process.env.ENABLE_TOPUPS === "true" && e.orderItem.plan.supportsTopup
+    envBoolean(process.env.ENABLE_TOPUPS) && e.orderItem.plan.supportsTopup
       ? await db().plan.findMany({
           where: {
             destinationId: e.orderItem.plan.destinationId,
@@ -49,15 +50,15 @@ export async function EsimDetail({
                 : "The installation image is temporarily unavailable. Please contact support with your order reference."}
             </p>
           )}
-          <p style={{ fontSize: 11 }}>
+          <p style={{ fontSize: 14 }}>
             Scan this QR code from your phone’s Add eSIM settings using another
             screen. Keep it private.
           </p>
           <span className="status">{e.status.replaceAll("_", " ")}</span>
-          <p style={{ fontSize: 11 }}>
+          <p style={{ fontSize: 14 }}>
             ICCID ending in {e.iccid.slice(-4).padStart(e.iccid.length, "•")}
           </p>
-          <p style={{ fontSize: 11 }}>
+          <p style={{ fontSize: 14 }}>
             {e.dataUsedMb === null
               ? "Usage unavailable"
               : `${(e.dataUsedMb / 1024).toFixed(2)} GB used of ${(e.dataTotalMb / 1024).toFixed(1)} GB`}
@@ -66,7 +67,7 @@ export async function EsimDetail({
         </div>
         <div className="panel">
           <h2>Make yourself at home.</h2>
-          <p style={{ fontSize: 12, marginBottom: 20 }}>
+          <p style={{ fontSize: 14, marginBottom: 20 }}>
             {e.orderItem.dataLabel} · {e.orderItem.validityDays} days. Connect
             to Wi-Fi before installing.
           </p>
@@ -131,7 +132,7 @@ export async function EsimDetail({
             Do not delete your eSIM after installation unless instructed by
             support. Installation codes may only work once.
           </p>
-          <p style={{ fontSize: 11 }}>
+          <p style={{ fontSize: 14 }}>
             Device menus vary by model and software. Your plan’s activation and
             expiry rules take precedence.{" "}
             {e.expiresAt
@@ -143,7 +144,7 @@ export async function EsimDetail({
       {topups.length > 0 && (
         <div className="panel" style={{ marginBottom: 40 }}>
           <h2>A little further to go?</h2>
-          <p style={{ fontSize: 12, marginBottom: 20 }}>
+          <p style={{ fontSize: 14, marginBottom: 20 }}>
             Choose a top-up. We’ll confirm the price and take you to secure
             payment before adding data.
           </p>

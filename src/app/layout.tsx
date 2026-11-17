@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { brand } from "@/lib/brand";
+import { getExchangeRates } from "@/lib/exchange-rates";
+import { CurrencyProvider } from "@/components/ui/currency-provider";
 import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(brand.url),
@@ -21,18 +23,21 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary_large_image" },
 };
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const rates = await getExchangeRates();
   return (
     <html lang="en">
       <body>
-        <a href="#main" className="skip-link">
-          Skip to content
-        </a>
-        <Header />
-        <main id="main">{children}</main>
-        <Footer />
+        <CurrencyProvider initial={rates}>
+          <a href="#main" className="skip-link">
+            Skip to content
+          </a>
+          <Header />
+          <main id="main">{children}</main>
+          <Footer />
+        </CurrencyProvider>
       </body>
     </html>
   );

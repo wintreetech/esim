@@ -36,7 +36,7 @@ export const deviceSeeds = [
   },
   {
     brand: "Xiaomi",
-    model: "Xiaomi 13 / 13 Pro, 14 / 14 Pro",
+    model: "Xiaomi 13 / 13 Pro, 14",
     notes:
       "Selected international variants only. Mainland China models can differ.",
   },

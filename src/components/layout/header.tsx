@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { brand } from "@/lib/brand";
 import { useCart } from "@/lib/cart";
+import { currencies, type Currency } from "@/lib/currency";
+import { useExchangeRates } from "@/components/ui/currency-provider";
 const links = [
   ["Destinations", "/destinations"],
   ["Europe", "/esim/europe"],
@@ -22,6 +24,7 @@ const links = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const { items, currency, setCurrency } = useCart();
+  const { rates } = useExchangeRates();
   useEffect(() => {
     void useCart.persist.rehydrate();
   }, []);
@@ -56,10 +59,13 @@ export function Header() {
               <select
                 aria-label="Currency"
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value as "USD" | "INR")}
+                onChange={(e) => setCurrency(e.target.value as Currency)}
               >
-                <option>USD</option>
-                <option>INR</option>
+                {currencies.map((code) => (
+                  <option key={code} value={code} disabled={!rates[code]}>
+                    {code}
+                  </option>
+                ))}
               </select>
             </label>
             <Link href="/account" className="icon-link" aria-label="My account">
@@ -91,6 +97,10 @@ export function Header() {
                 <ArrowUpRight size={16} />
               </Link>
             ))}
+            <Link href="/account" onClick={() => setOpen(false)}>
+              My account
+              <UserRound size={16} />
+            </Link>
           </nav>
         )}
       </header>

@@ -1,18 +1,31 @@
-export type Currency = "USD" | "INR";
-export function exchangeRate() {
-  const rate = Number(process.env.USD_INR_RATE ?? 84);
-  if (!Number.isFinite(rate) || rate <= 0)
-    throw new Error("Invalid exchange rate");
-  return rate;
-}
+export const currencies = ["USD", "EUR", "AUD"] as const;
+export type Currency = (typeof currencies)[number];
+export type CurrencyRates = Record<Currency, number | null>;
+export type ExchangeRateSnapshot = {
+  base: "USD";
+  rates: CurrencyRates;
+  checkedAt: string | null;
+  source: "Frankfurter";
+  rateDate: string | null;
+  status: "current" | "stale" | "unavailable";
+};
+export const usdOnlyRates: CurrencyRates = {
+  USD: 1,
+  EUR: null,
+  AUD: null,
+};
 export function convertCents(
   usdCents: number,
   currency: Currency,
-  rate: number,
+  rates: CurrencyRates,
 ) {
-  return Math.round(usdCents * (currency === "INR" ? rate : 1));
+  const rate = rates[currency];
+  if (!Number.isFinite(rate) || rate === null || rate <= 0)
+    throw new Error("Exchange rate unavailable");
+  return Math.round(usdCents * rate);
 }
-export function formatMoney(cents: number, currency: Currency = "USD") {
+// Historic INR orders must remain readable, although INR is no longer offered.
+export function formatMoney(cents: number, currency: Currency | "INR" = "USD") {
   return new Intl.NumberFormat(currency === "INR" ? "en-IN" : "en-US", {
     style: "currency",
     currency,

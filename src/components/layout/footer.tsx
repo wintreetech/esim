@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowUpRight, Globe2, Heart, LockKeyhole } from "lucide-react";
 import { brand } from "@/lib/brand";
+import { PaymentMethods } from "@/components/ui/payment-methods";
+import { CurrencyRateNote } from "@/components/ui/currency-provider";
 export function Footer() {
   return (
     <footer className="footer">
@@ -62,14 +64,21 @@ export function Footer() {
           </div>
         ))}
       </div>
+      <div className="container footer-assurance">
+        <div className="payment-assurance">
+          <LockKeyhole size={20} aria-hidden="true" />
+          <div>
+            <strong>Secure card payments</strong>
+            <p>Secure, encrypted checkout</p>
+          </div>
+        </div>
+        <PaymentMethods />
+      </div>
       <div className="container footer-bottom">
         <span>
           © {new Date().getFullYear()} {brand.name}. Go somewhere good.
         </span>
-        <span>
-          <LockKeyhole size={13} /> Secure payments powered by Stripe
-        </span>
-        <span>Visa &nbsp; Mastercard &nbsp; Apple Pay</span>
+        <CurrencyRateNote />
       </div>
     </footer>
   );

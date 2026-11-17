@@ -5,6 +5,8 @@ import { accessibleOrder, accessibleEsim } from "@/lib/order-access";
 import { EsimDetail } from "@/components/account/esim-detail";
 import { formatMoney, type Currency } from "@/lib/currency";
 import { label } from "@/lib/utils";
+import { ResendOrderEmail } from "@/components/account/resend-order-email";
+import { emailConfigured } from "@/lib/email-config";
 export const metadata: Metadata = {
   title: "Your private order",
   robots: { index: false, follow: false },
@@ -58,7 +60,7 @@ export default async function OrderPage({
             reference.
           </p>
         ) : order.status === "PENDING_PAYMENT" ? (
-          <p style={{ fontSize: 12, marginTop: 20 }}>
+          <p style={{ fontSize: 14, marginTop: 20 }}>
             We’re waiting for secure payment confirmation.
           </p>
         ) : order.status === "REFUNDED" ? (
@@ -71,6 +73,9 @@ export default async function OrderPage({
           <p className="success-text">
             Top-up status: {order.topUp.status.toLowerCase()}.
           </p>
+        )}
+        {order.status === "FULFILLED" && (
+          <ResendOrderEmail orderId={order.id} configured={emailConfigured()} />
         )}
       </div>
       {order.status !== "REFUNDED" &&

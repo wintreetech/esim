@@ -14,6 +14,9 @@ export async function cleanupCheckouts() {
     orderBy: { createdAt: "asc" },
   });
   for (const order of stale) {
+    // Hosted TransactWorld forms have no documented expiry. A local timeout
+    // cannot establish whether the gateway can still capture this payment.
+    if (order.checkoutSessionId?.startsWith("tw_")) continue;
     if (order.checkoutSessionId) {
       try {
         const session = await getStripe().checkout.sessions.retrieve(

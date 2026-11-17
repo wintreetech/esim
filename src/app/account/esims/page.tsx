@@ -51,7 +51,7 @@ export default async function Esims() {
               </p>
               <Link
                 className="button button-secondary"
-                style={{ marginTop: 20, fontSize: 11 }}
+                style={{ marginTop: 20, fontSize: 14 }}
                 href={`/account/esims/${e.id}`}
               >
                 View eSIM & installation →

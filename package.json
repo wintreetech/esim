@@ -22,7 +22,9 @@
     "admin:promote": "tsx scripts/promote-admin.ts",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
-    "resellportal:check": "node --conditions=react-server --import tsx scripts/check-resellportal.ts"
+    "resellportal:check": "node --conditions=react-server --import tsx scripts/check-resellportal.ts",
+    "payments:check": "node --conditions=react-server --import tsx scripts/check-payments.ts",
+    "payments:verify": "node --conditions=react-server --import tsx scripts/verify-payment-connection.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",

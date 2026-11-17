@@ -98,13 +98,13 @@ export function CouponForm() {
         <input name="active" type="checkbox" defaultChecked />
         Active
       </label>
-      <p style={{ fontSize: 11, marginBottom: 20 }}>
+      <p style={{ fontSize: 14, marginBottom: 20 }}>
         Discounts are capped to preserve the configured minimum margin. Uses
         include pending checkout reservations.
       </p>
       <Button disabled={busy}>{busy ? "Saving…" : "Save coupon"}</Button>
       {message && (
-        <p style={{ fontSize: 12, marginTop: 15 }} role="status">
+        <p style={{ fontSize: 14, marginTop: 15 }} role="status">
           {message}
         </p>
       )}

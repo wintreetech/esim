@@ -17,6 +17,7 @@ export default async function AdminLayout({
       <aside className="account-nav" aria-label="Admin navigation">
         {[
           ["Overview", "/admin"],
+          ["Store setup", "/admin/setup"],
           ["Orders", "/admin/orders"],
           ["Destinations", "/admin/destinations"],
           ["Plans & pricing", "/admin/plans"],

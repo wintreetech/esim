@@ -42,7 +42,7 @@ export function UsageRefresh({ id }: { id: string }) {
       {message && (
         <p
           className="muted"
-          style={{ fontSize: 11, marginTop: 10 }}
+          style={{ fontSize: 14, marginTop: 10 }}
           role="status"
         >
           {message}

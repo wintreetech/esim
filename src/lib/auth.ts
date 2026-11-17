@@ -5,45 +5,38 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { db } from "./db";
 import { HttpError } from "./http";
-export const authConfigured = () =>
-  Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  );
+import { authSettings } from "./auth-config";
+export const authConfigured = () => Boolean(authSettings());
 export async function supabase() {
-  if (!authConfigured())
+  const settings = authSettings();
+  if (!settings)
     throw new HttpError(
       503,
       "Account sign-in is being configured. Guest checkout is still available when the store is ready.",
     );
   const jar = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => jar.getAll(),
-        setAll: (values) => {
-          try {
-            values.forEach(({ name, value, options }) =>
-              jar.set(name, value, options),
-            );
-          } catch {
-            /* Cookie refresh is handled by proxy.ts for server components. */
-          }
-        },
+  return createServerClient(settings.url, settings.key, {
+    cookies: {
+      getAll: () => jar.getAll(),
+      setAll: (values) => {
+        try {
+          values.forEach(({ name, value, options }) =>
+            jar.set(name, value, options),
+          );
+        } catch {
+          /* Cookie refresh is handled by proxy.ts for server components. */
+        }
       },
     },
-  );
+  });
 }
 export const getUser = cache(async () => {
   if (!authConfigured() || !process.env.DATABASE_URL) return null;
   const client = await supabase();
-  const {
-    data: { user },
-    error,
-  } = await client.auth.getUser();
-  if (error || !user?.email || !user.email_confirmed_at) return null;
+  const result = await client.auth.getUser().catch(() => null);
+  const user = result?.data.user;
+  if (!result || result.error || !user?.email || !user.email_confirmed_at)
+    return null;
   // Role comes only from our database, never from user-editable Supabase metadata.
   return db().user.upsert({
     where: { authId: user.id },

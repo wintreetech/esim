@@ -3,32 +3,43 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, LockKeyhole, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart } from "@/lib/cart";
-import { formatMoney } from "@/lib/currency";
+import { formatMoney, type Currency } from "@/lib/currency";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
+import { PaymentMethods } from "@/components/ui/payment-methods";
+import { validatePaymentRedirect } from "@/lib/payments/redirect";
+import { useDeviceCheck } from "@/lib/device-check-store";
+import { deviceCheckStatus } from "@/lib/compatibility";
 type Quote = {
   subtotal: number;
   discount: number;
   tax: number;
   total: number;
-  currency: "USD" | "INR";
+  currency: Currency;
+  items: { id: string; unitPrice: number }[];
 };
 export function CheckoutForm({
   configured,
-  rate,
   topUpEsimId,
   initialPlanId,
+  paymentCurrencies,
 }: {
   configured: boolean;
-  rate: number;
   topUpEsimId?: string;
   initialPlanId?: string;
+  paymentCurrencies?: string[];
 }) {
   const { items, currency, remove } = useCart();
+  const { check: deviceCheck, hydrated: deviceHydrated } = useDeviceCheck();
+  const deviceReady =
+    deviceHydrated && deviceCheckStatus(deviceCheck) === "ready";
+  const currencyAvailable =
+    !paymentCurrencies || paymentCurrencies.includes(currency);
   const [ready, setReady] = useState(false),
     [error, setError] = useState(""),
     [quoteFailure, setQuoteFailure] = useState({ signature: "", message: "" }),
     [pending, setPending] = useState(false),
+    [quoteRefresh, setQuoteRefresh] = useState(0),
     [quoteResult, setQuoteResult] = useState<{
       signature: string;
       value: Quote;
@@ -75,10 +86,16 @@ export function CheckoutForm({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [signature, ready, configured]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [signature, ready, configured, quoteRefresh]); // eslint-disable-line react-hooks/exhaustive-deps
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    if (!deviceReady) {
+      setError(
+        "Please confirm eSIM support and carrier unlock status before paying.",
+      );
+      return;
+    }
     setPending(true);
     const form = new FormData(e.currentTarget);
     try {
@@ -88,27 +105,44 @@ export function CheckoutForm({
         body: JSON.stringify({
           planIds,
           currency,
+          expectedTotal: quote?.total,
           coupon: coupon || undefined,
           topUpEsimId,
           email: form.get("email"),
           firstName: form.get("firstName"),
           lastName: form.get("lastName"),
           acceptedTerms: form.get("terms") === "on",
+          deviceCheck,
           idempotencyKey: key.current,
         }),
       });
       const result = await response.json();
       if (!response.ok) {
-        if (response.status === 409) key.current = crypto.randomUUID();
+        if (response.status === 409) {
+          key.current = crypto.randomUUID();
+          setQuoteResult(null);
+          setQuoteRefresh((n) => n + 1);
+        }
         throw new Error(result.error);
       }
-      const target = new URL(result.url);
-      if (
-        target.protocol !== "https:" ||
-        target.hostname !== "checkout.stripe.com"
-      )
-        throw new Error("Invalid payment destination.");
-      window.location.assign(result.url);
+      const target = validatePaymentRedirect(result);
+      if (result.method === "POST") {
+        const paymentForm = document.createElement("form");
+        paymentForm.method = "POST";
+        paymentForm.action = target.href;
+        paymentForm.hidden = true;
+        for (const [name, value] of Object.entries(
+          result.fields as Record<string, string>,
+        )) {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = name;
+          input.value = value;
+          paymentForm.appendChild(input);
+        }
+        document.body.appendChild(paymentForm);
+        HTMLFormElement.prototype.submit.call(paymentForm);
+      } else window.location.assign(target.href);
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Checkout failed. Please try again.",
@@ -138,7 +172,7 @@ export function CheckoutForm({
     <div className="checkout-layout">
       <form className="panel" onSubmit={submit}>
         <h2>A good connection starts here.</h2>
-        <p style={{ fontSize: 12, marginBottom: 24 }}>
+        <p style={{ fontSize: 14, marginBottom: 24 }}>
           Your installation details go straight to this email.
         </p>
         <label className="field">
@@ -155,16 +189,22 @@ export function CheckoutForm({
         </label>
         <div className="field-row">
           <label className="field">
-            First name <span className="muted">(optional)</span>
+            <span>
+              First name <span className="muted">(optional)</span>
+            </span>
             <input name="firstName" autoComplete="given-name" maxLength={80} />
           </label>
           <label className="field">
-            Last name <span className="muted">(optional)</span>
+            <span>
+              Last name <span className="muted">(optional)</span>
+            </span>
             <input name="lastName" autoComplete="family-name" maxLength={80} />
           </label>
         </div>
         <label className="field">
-          Got a little perk? <span className="muted">(coupon code)</span>
+          <span>
+            Coupon code <span className="muted">(optional)</span>
+          </span>
           <input
             value={coupon}
             onChange={(e) => setCoupon(e.target.value.toUpperCase())}
@@ -175,16 +215,44 @@ export function CheckoutForm({
         <label className="check-label">
           <input type="checkbox" name="terms" required />
           <span>
-            I’ve <Link href="/compatibility">checked my device</Link> is eSIM
-            compatible and unlocked. I agree to the{" "}
-            <Link href="/legal/terms">terms</Link> and{" "}
+            I agree to the <Link href="/legal/terms">terms</Link> and{" "}
             <Link href="/legal/refunds">refund policy</Link>.
           </span>
         </label>
+        <div className={`checkout-device-check ${deviceReady ? "ready" : ""}`}>
+          <h3>
+            {deviceReady
+              ? "Device checks confirmed"
+              : "Check your phone before you pay"}
+          </h3>
+          <p>
+            {deviceReady
+              ? `${deviceCheck!.model} · You confirmed eSIM support and carrier unlock status.`
+              : deviceCheckStatus(deviceCheck) === "blocked"
+                ? "Your saved answers show a compatibility issue. Resolve it before purchasing."
+                : "Confirm the phone you will install the eSIM on. Your bag stays saved while you check."}
+          </p>
+          <Link className="text-link" href="/compatibility?returnTo=checkout">
+            {deviceReady ? "Review or change device" : "Check my device"}{" "}
+            <ArrowRight size={15} />
+          </Link>
+          {deviceReady && (
+            <p className="device-check-disclosure">
+              Based on your answers, saved for 30 days. Check every phone if
+              buying plans for other people.
+            </p>
+          )}
+        </div>
         {!configured && (
           <p className="preview-notice">
             Checkout is temporarily unavailable. Please check back shortly or
             contact support.
+          </p>
+        )}
+        {configured && !currencyAvailable && (
+          <p className="preview-notice" role="alert">
+            Payment in {currency} is currently unavailable. Choose{" "}
+            {paymentCurrencies?.join(" or ")} using the currency selector above.
           </p>
         )}
         {error && (
@@ -194,7 +262,14 @@ export function CheckoutForm({
         )}
         <Button
           className="full-width"
-          disabled={!configured || pending || !quote || !!quoteError}
+          disabled={
+            !configured ||
+            !currencyAvailable ||
+            !deviceReady ||
+            pending ||
+            !quote ||
+            !!quoteError
+          }
         >
           {pending ? (
             "Getting your checkout ready…"
@@ -207,8 +282,9 @@ export function CheckoutForm({
         </Button>
         <p className="secure-note">
           <LockKeyhole size={12} />
-          Encrypted checkout · Card details stay with Stripe
+          Secure, encrypted checkout
         </p>
+        <PaymentMethods />
       </form>
       <div className="panel">
         <h2>Your little travel essential</h2>
@@ -231,7 +307,14 @@ export function CheckoutForm({
                 </p>
               </div>
               <div className="cart-item-price">
-                <Price cents={item.retailPrice} rate={rate} />
+                {quote?.items.find((i) => i.id === item.id) ? (
+                  formatMoney(
+                    quote.items.find((i) => i.id === item.id)!.unitPrice,
+                    currency,
+                  )
+                ) : (
+                  <Price cents={item.retailPrice} />
+                )}
                 <button
                   type="button"
                   className="remove-item"
@@ -272,14 +355,14 @@ export function CheckoutForm({
             <p className="secure-note">One-time payment. No subscription.</p>
           </>
         ) : (
-          <p style={{ fontSize: 11, marginTop: 20 }}>
+          <p style={{ fontSize: 14, marginTop: 20 }}>
             {configured
               ? "Confirming live prices…"
               : "Final prices will be confirmed by the server when checkout opens."}
           </p>
         )}
         <div className="info-panel" style={{ padding: 18, marginTop: 24 }}>
-          <p style={{ fontSize: 11 }}>
+          <p style={{ fontSize: 14 }}>
             A little reminder: these are data-only plans. Install over Wi-Fi,
             keep your usual number, and follow the activation instructions sent
             with your eSIM.
@@ -287,7 +370,7 @@ export function CheckoutForm({
         </div>
         <Link
           className="text-link"
-          style={{ marginTop: 20, fontSize: 11 }}
+          style={{ marginTop: 20, fontSize: 14 }}
           href="/destinations"
         >
           Keep exploring

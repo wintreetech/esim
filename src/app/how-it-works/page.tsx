@@ -32,7 +32,7 @@ export default function HowItWorks() {
           {
             icon: Smartphone,
             title: "Pick your data plan",
-            text: "Choose your allowance and validity. Enter your email, review the total, and pay securely through Stripe.",
+            text: "Choose your allowance and validity. Enter your email, review the total, and pay securely online.",
           },
           {
             icon: QrCode,

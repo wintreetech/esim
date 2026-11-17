@@ -1,5 +1,6 @@
 import "server-only";
 import { ProviderError } from "./types";
+import { envBoolean } from "@/lib/env-boolean";
 
 export const RESELLPORTAL_PROVIDER = "resellportal";
 export const RESELLPORTAL_BASE_URL =
@@ -21,7 +22,11 @@ export function resellPortalConfigured() {
 
 export function resellPortalTestMode() {
   // Missing or misspelled configuration must never enable wallet charges.
-  return process.env.RESELLPORTAL_TEST_MODE !== "false";
+  return envBoolean(process.env.RESELLPORTAL_TEST_MODE, true);
+}
+
+export function resellPortalLiveOrdersAllowed() {
+  return envBoolean(process.env.RESELLPORTAL_ALLOW_LIVE_ORDERS);
 }
 
 export function requireResellPortalCredentials() {
@@ -47,10 +52,7 @@ export function requireResellPortalCredentials() {
 }
 
 export function requireOrderMode() {
-  if (
-    !resellPortalTestMode() &&
-    process.env.RESELLPORTAL_ALLOW_LIVE_ORDERS !== "true"
-  ) {
+  if (!resellPortalTestMode() && !resellPortalLiveOrdersAllowed()) {
     throw new ProviderError("RESELLPORTAL_LIVE_ORDERS_DISABLED", false);
   }
 }

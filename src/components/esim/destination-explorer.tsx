@@ -5,12 +5,10 @@ import { DestinationCard } from "./destination-card";
 import type { PublicDestination } from "@/lib/catalog";
 export function DestinationExplorer({
   destinations,
-  rate,
   initialQuery = "",
   compact = false,
 }: {
   destinations: PublicDestination[];
-  rate: number;
   initialQuery?: string;
   compact?: boolean;
 }) {
@@ -60,7 +58,7 @@ export function DestinationExplorer({
       <div className="destination-grid">
         {results.map((d) => (
           <div key={d.id}>
-            <DestinationCard destination={d} rate={rate} />
+            <DestinationCard destination={d} />
             {!compact && (
               <p className="plan-count">
                 {d.plans.length} data plans ·{" "}

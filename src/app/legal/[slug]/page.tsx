@@ -11,7 +11,7 @@ const pages: Record<string, { title: string; text: string[] }> = {
   privacy: {
     title: "Privacy Policy",
     text: [
-      "The application processes purchase email, optional name, order history, payment references, and eSIM details to deliver the service. Stripe handles payment card information; this application does not store full card details. Supabase supports sign-in, the supplier provisions data plans, and Resend delivers transactional email.",
+      "The application processes purchase email, optional name, order history, payment references, and eSIM details to deliver the service. The payment provider handles payment card information; this application does not store full card details. Supabase supports sign-in, the supplier provisions data plans, and Resend delivers transactional email.",
       "The operator must document legal bases, processors, data locations, retention periods, deletion requests, user rights, security controls, analytics configuration, and a privacy contact before launch. Activation details and private access links should be treated as confidential.",
     ],
   },

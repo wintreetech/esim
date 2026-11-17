@@ -2,7 +2,6 @@ import "server-only";
 import { db } from "./db";
 import { destinationSeeds } from "./data/destinations";
 import { calculatePrice, pricingConfig } from "./pricing/calculate-price";
-import { exchangeRate } from "./currency";
 import { providerName } from "./esim/config";
 export type PublicPlan = {
   id: string;
@@ -84,6 +83,5 @@ export async function getCatalog(): Promise<PublicDestination[]> {
 export async function catalogContext() {
   return {
     destinations: await getCatalog(),
-    rate: exchangeRate(),
   };
 }

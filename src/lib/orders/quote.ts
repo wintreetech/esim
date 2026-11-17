@@ -3,10 +3,12 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { quoteSchema } from "@/lib/validators/checkout";
 import { calculatePrice, pricingConfig } from "@/lib/pricing/calculate-price";
-import { convertCents, exchangeRate } from "@/lib/currency";
+import { convertCents, usdOnlyRates } from "@/lib/currency";
+import { getExchangeRates } from "@/lib/exchange-rates";
 import { HttpError } from "@/lib/http";
 import { accessibleEsim } from "@/lib/order-access";
 import { providerName } from "@/lib/esim/config";
+import { envBoolean } from "@/lib/env-boolean";
 export async function quoteOrder(input: z.infer<typeof quoteSchema>) {
   const plans = await db().plan.findMany({
     where: {
@@ -25,7 +27,7 @@ export async function quoteOrder(input: z.infer<typeof quoteSchema>) {
     );
   let targetEsim: Awaited<ReturnType<typeof accessibleEsim>> | null = null;
   if (input.topUpEsimId) {
-    if (process.env.ENABLE_TOPUPS !== "true")
+    if (!envBoolean(process.env.ENABLE_TOPUPS))
       throw new HttpError(400, "Top-ups are not enabled.");
     if (plans.length !== 1)
       throw new HttpError(400, "Choose one top-up package.");
@@ -74,10 +76,25 @@ export async function quoteOrder(input: z.infer<typeof quoteSchema>) {
       : 0,
     subtotalUsd - floorUsd,
   );
-  const rate = exchangeRate(),
-    convert = (v: number) => convertCents(v, input.currency, rate);
-  const subtotal = convert(subtotalUsd),
-    discount = convert(discountUsd),
+  const fx = input.currency === "USD" ? null : await getExchangeRates();
+  if (fx && fx.status !== "current")
+    throw new HttpError(
+      503,
+      "Currency conversion is temporarily unavailable. Please choose USD or try again shortly.",
+    );
+  const rates = fx?.rates || usdOnlyRates;
+  const rate = rates[input.currency]!;
+  const convert = (v: number) => convertCents(v, input.currency, rates);
+  const unitPrices = base.map((p) => convert(p.subtotal));
+  const subtotal = unitPrices.reduce((sum, amount) => sum + amount, 0),
+    convertedFloor = plans.reduce(
+      (sum, p) => sum + convert(p.wholesalePrice + config.minMargin),
+      0,
+    ),
+    discount = Math.min(
+      convert(discountUsd),
+      Math.max(0, subtotal - convertedFloor),
+    ),
     tax = Math.round(((subtotal - discount) * config.taxPercent) / 100),
     total = subtotal - discount + tax;
   if (total < 50 || total > 99_999_999)
@@ -92,13 +109,14 @@ export async function quoteOrder(input: z.infer<typeof quoteSchema>) {
     total,
     currency: input.currency,
     rate,
+    fx,
     items: plans.map((p, i) => ({
       id: p.id,
       name: p.name,
       destinationName: p.destination.name,
       dataLabel: p.dataLabel,
       validityDays: p.validityDays,
-      unitPrice: convert(base[i].subtotal),
+      unitPrice: unitPrices[i],
     })),
   };
 }
@@ -109,6 +127,8 @@ export function publicQuote(q: Awaited<ReturnType<typeof quoteOrder>>) {
     tax: q.tax,
     total: q.total,
     currency: q.currency,
+    exchangeRate: q.rate,
+    exchangeRateCheckedAt: q.fx?.checkedAt || null,
     items: q.items,
   };
 }

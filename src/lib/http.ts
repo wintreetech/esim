@@ -43,7 +43,15 @@ export async function jsonBody<T>(
   }
 }
 export function sameOrigin(request: Request) {
-  if (request.headers.get("origin") !== new URL(brand.url).origin)
+  const origin = request.headers.get("origin");
+  const requestUrl = new URL(request.url);
+  const localDevelopment =
+    process.env.NODE_ENV !== "production" &&
+    ["localhost", "127.0.0.1", "[::1]"].includes(requestUrl.hostname);
+  if (
+    origin !== new URL(brand.url).origin &&
+    !(localDevelopment && origin === requestUrl.origin)
+  )
     throw new HttpError(403, "This request is not allowed.");
 }
 export function apiError(error: unknown) {

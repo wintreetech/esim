@@ -33,8 +33,13 @@ export default async function AdminOrder({
           <dd>{o.status}</dd>
           <dt>Payment status</dt>
           <dd>{o.payment?.status || "Unpaid"}</dd>
-          <dt>Stripe transaction</dt>
-          <dd>{o.stripePaymentIntentId || "—"}</dd>
+          <dt>Payment gateway</dt>
+          <dd>
+            {o.payment?.provider ||
+              (o.checkoutSessionId?.startsWith("tw_") ? "transactworld" : "—")}
+          </dd>
+          <dt>Gateway transaction</dt>
+          <dd>{o.payment?.transactionId || o.stripePaymentIntentId || "—"}</dd>
           <dt>Email delivered</dt>
           <dd>{o.emailSentAt?.toISOString() || "Not recorded"}</dd>
           <dt>Created</dt>
@@ -48,14 +53,14 @@ export default async function AdminOrder({
             Resend ready email
           </AdminAction>
           <AdminAction payload={{ action: "refund-marker", orderId: id }}>
-            Reconcile Stripe refund
+            Reconcile gateway refund
           </AdminAction>
         </div>
-        <p style={{ fontSize: 11 }}>
-          Refund reconciliation checks an existing full refund in Stripe. Issue
-          any money refund through the Stripe dashboard. An uncertain supplier
-          purchase is paused for reconciliation, so retrying cannot charge the
-          wallet twice.
+        <p style={{ fontSize: 14 }}>
+          Refund reconciliation checks an existing full refund with the payment
+          gateway. Issue any money refund through your merchant dashboard. An
+          uncertain supplier purchase is paused for reconciliation, so retrying
+          cannot charge the wallet twice.
         </p>
       </div>
       {o.items
@@ -69,7 +74,7 @@ export default async function AdminOrder({
         .map((i) => (
           <div className="panel" key={i.id} style={{ marginTop: 20 }}>
             <h2>Verify the existing supplier purchase</h2>
-            <p style={{ fontSize: 12 }}>
+            <p style={{ fontSize: 14 }}>
               Check ResellPortal for this customer and package before retrying.
               Link the existing service here; the server verifies customer,
               package and test/live mode.

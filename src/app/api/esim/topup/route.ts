@@ -3,9 +3,10 @@ import { z } from "zod";
 import { accessibleEsim } from "@/lib/order-access";
 import { apiError, HttpError } from "@/lib/http";
 import { db } from "@/lib/db";
+import { envBoolean } from "@/lib/env-boolean";
 export async function GET(request: Request) {
   try {
-    if (process.env.ENABLE_TOPUPS !== "true")
+    if (!envBoolean(process.env.ENABLE_TOPUPS))
       throw new HttpError(404, "Top-ups are not enabled.");
     const id = z
       .string()

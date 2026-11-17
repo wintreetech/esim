@@ -36,7 +36,7 @@ export default async function DestinationPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { destinations, rate } = await catalogContext();
+  const { destinations } = await catalogContext();
   const d = destinations.find((d) => d.slug === slug);
   if (!d) notFound();
   return (
@@ -70,12 +70,12 @@ export default async function DestinationPage({
               Data-only plans
             </span>
           </div>
-          <p style={{ fontSize: 11 }}>
+          <p style={{ fontSize: 14 }}>
             Network capabilities vary by plan and local coverage.{" "}
             <Link
               href="/compatibility"
               className="text-link"
-              style={{ fontSize: 11 }}
+              style={{ fontSize: 14 }}
             >
               Check your device before buying ↗
             </Link>
@@ -102,7 +102,7 @@ export default async function DestinationPage({
         {d.plans.length ? (
           <div className="plan-grid">
             {d.plans.map((p, i) => (
-              <PlanCard key={p.id} plan={p} rate={rate} popular={i === 2} />
+              <PlanCard key={p.id} plan={p} popular={i === 2} />
             ))}
           </div>
         ) : (
@@ -141,10 +141,7 @@ export default async function DestinationPage({
           <div>
             Plans from
             <strong>
-              <Price
-                cents={Math.min(...d.plans.map((p) => p.retailPrice))}
-                rate={rate}
-              />
+              <Price cents={Math.min(...d.plans.map((p) => p.retailPrice))} />
             </strong>
           </div>
           <a className="button" href="#plans">

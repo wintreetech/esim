@@ -21,6 +21,9 @@ export async function confirmPayment(payment: ConfirmedPayment) {
         !order ||
         order.total !== payment.amount ||
         order.currency !== payment.currency.toUpperCase() ||
+        (order.checkoutSessionId?.startsWith("tw_")
+          ? "transactworld"
+          : "stripe") !== (payment.provider || "stripe") ||
         (order.checkoutSessionId &&
           order.checkoutSessionId !== payment.sessionId)
       )
@@ -45,7 +48,9 @@ export async function confirmPayment(payment: ConfirmedPayment) {
         where: { id: order.id, status: order.status },
         data: {
           status: reversal ? "REFUNDED" : "PAID",
-          stripePaymentIntentId: payment.transactionId,
+          ...(payment.provider === "transactworld"
+            ? {}
+            : { stripePaymentIntentId: payment.transactionId }),
           checkoutSessionId: payment.sessionId,
         },
       });
@@ -54,7 +59,7 @@ export async function confirmPayment(payment: ConfirmedPayment) {
       await tx.payment.create({
         data: {
           orderId: order.id,
-          provider: "stripe",
+          provider: payment.provider || "stripe",
           transactionId: payment.transactionId,
           amount: payment.amount,
           currency: order.currency,
@@ -117,7 +122,11 @@ export async function expireCheckout(sessionId: string) {
       });
   });
 }
-export async function recordRefund(transactionId: string, eventId: string) {
+export async function recordRefund(
+  transactionId: string,
+  eventId: string,
+  provider = "stripe",
+) {
   await db().$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${transactionId})::bigint)`;
     if (await tx.webhookEvent.findUnique({ where: { id: eventId } })) return;
@@ -129,7 +138,7 @@ export async function recordRefund(transactionId: string, eventId: string) {
     const payment = await tx.payment.findUnique({ where: { transactionId } });
     if (!payment) {
       await tx.webhookEvent.create({
-        data: { id: eventId, type: "charge.refunded" },
+        data: { id: eventId, type: `${provider}.refunded` },
       });
       return;
     }
@@ -152,13 +161,13 @@ export async function recordRefund(transactionId: string, eventId: string) {
     await tx.auditLog.create({
       data: {
         orderId: payment.orderId,
-        action: "STRIPE_FULL_REFUND_CONFIRMED",
+        action: `${provider.toUpperCase()}_FULL_REFUND_CONFIRMED`,
         detail:
           "If an eSIM was already issued or provisioning was in flight, reconcile with supplier.",
       },
     });
     await tx.webhookEvent.create({
-      data: { id: eventId, type: "charge.refunded" },
+      data: { id: eventId, type: `${provider}.refunded` },
     });
   });
 }

@@ -66,7 +66,7 @@ export function SupplierReconcile({ orderItemId }: { orderItemId: string }) {
           }}
         >
           <p className="warning">
-              Only use this after checking customer services and wallet
+            Only use this after checking customer services and wallet
             transactions in ResellPortal. A new attempt can charge the wallet.
           </p>
           <label className="check-label">
@@ -83,7 +83,7 @@ export function SupplierReconcile({ orderItemId }: { orderItemId: string }) {
         </form>
       </details>
       {message && (
-        <p style={{ fontSize: 12, marginTop: 10 }} role="status">
+        <p style={{ fontSize: 14, marginTop: 10 }} role="status">
           {message}
         </p>
       )}

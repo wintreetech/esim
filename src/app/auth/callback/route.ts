@@ -7,7 +7,8 @@ export async function GET(request: Request) {
     try {
       const client = await supabase();
       const { error } = await client.auth.exchangeCodeForSession(code);
-      if (!error) return NextResponse.redirect(new URL("/account", brand.url));
+      if (!error)
+        return NextResponse.redirect(new URL("/account/orders", brand.url));
     } catch {}
   }
   return NextResponse.redirect(new URL("/login?error=sign-in", brand.url));

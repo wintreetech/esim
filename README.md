@@ -1,6 +1,6 @@
 # Roamly + ResellPortal
 
-A Next.js App Router travel eSIM storefront with PostgreSQL/Prisma, Supabase Auth, Stripe Checkout and Resend. **ResellPortal is the runtime supplier.** There is no dummy catalog, mock-provider runtime branch, invented QR code, or seeded sample price. The ten launch destinations retain their original editorial content; plans and prices appear only after a successful authenticated supplier sync.
+A Next.js App Router travel eSIM storefront with PostgreSQL/Prisma, Supabase Auth, TransactWorld hosted checkout and Resend. **ResellPortal is the runtime supplier.** There is no dummy catalog, mock-provider runtime branch, invented QR code, or seeded sample price. The ten launch destinations retain their original editorial content; plans and prices appear only after a successful authenticated supplier sync.
 
 ## What to configure
 
@@ -14,7 +14,9 @@ For a client preview on Windows with PostgreSQL installed, run `npm run db:local
 | `RESELLPORTAL_BASE_URL`                                     | Already set to `https://panel.resellportal.com/wp-json/resellportal/v1`. The dashboard and MCP URLs are not the REST API base URL.                     |
 | `DATABASE_URL`                                              | PostgreSQL connection, such as Supabase or Neon. Use a server-only pooled connection in production.                                                    |
 | `DIRECT_DATABASE_URL`                                       | Optional direct connection for Prisma migrations when the application uses a transaction pooler.                                                       |
-| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`                | Receive and verify customer payments before supplier provisioning. Use Stripe test keys during integration.                                            |
+| `MEMBER_ID`, `WORKING_KEY`, `TW_ENVIRONMENT`                | TransactWorld merchant ID, signing key and `sandbox` or `live` environment. The hosted checkout contract is adapted from LexiHive.                     |
+| `PAYMENTS_ENABLED`, `TW_SUPPORTED_CURRENCIES`               | Set `yes` only after configuration; list currencies approved for this merchant. Display currencies do not imply payment approval.                      |
+| `TW_MERCHANT_USERNAME`, `TW_PARTNER_ID`, `TW_AUTH_TOKEN`    | Merchant authentication identity where required; optional short-lived Inquiry token override. Tokens normally refresh automatically.                   |
 | `RESEND_API_KEY`, `EMAIL_FROM`                              | Send Roamly installation emails from a verified domain.                                                                                                |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Customer and admin email-link sign-in. Guest checkout also works.                                                                                      |
 | `NEXT_PUBLIC_APP_URL`                                       | Local origin, then the final HTTPS domain; also used for CSRF, payment redirects and private order links.                                              |
@@ -22,7 +24,7 @@ For a client preview on Windows with PostgreSQL installed, run `npm run db:local
 | `ORDER_ACCESS_SECRET`, `CRON_SECRET`                        | Random signing/worker secrets. The local file has been populated where these were blank; values are not logged.                                        |
 | `RESELLPORTAL_QR_ALLOWED_HOSTS`                             | Exact hostname(s) used by the provider's QR images. Defaults to `panel.resellportal.com`; add the real carrier image hostname before live fulfillment. |
 
-`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is reserved for future embedded payment UI; hosted Stripe Checkout does not need Stripe.js. `SUPABASE_SERVICE_ROLE_KEY` is reserved and unused. Never put provider, database, payment, email, or signing secrets in a `NEXT_PUBLIC_*` variable.
+`PAYMENT_PROVIDER=transactworld` selects the current gateway. The old payment adapter and webhook remain for legacy orders; new TransactWorld checkouts need no Stripe keys. `SUPABASE_SERVICE_ROLE_KEY` is reserved and unused. Never put provider, database, payment, email, or signing secrets in a `NEXT_PUBLIC_*` variable.
 
 ## Test mode and live orders
 
@@ -30,21 +32,24 @@ Default local settings:
 
 ```dotenv
 ESIM_PROVIDER=resellportal
-RESELLPORTAL_TEST_MODE=true
-RESELLPORTAL_ALLOW_LIVE_ORDERS=false
+PAYMENT_PROVIDER=transactworld
+PAYMENTS_ENABLED=no
+TW_ENVIRONMENT=sandbox
+RESELLPORTAL_TEST_MODE=yes
+RESELLPORTAL_ALLOW_LIVE_ORDERS=no
 ```
 
 Every supplier mutation sends `test_mode` explicitly and uses `X-RP-Test-Mode: 1` in test mode. Every order suppresses the supplier's welcome email with `skip_client_email: true`; client creation also requests `send_setup_email: false`. Roamly delivers its own installation email. Returned portal passwords are discarded, not stored or shown.
 
 Test mode authenticates and validates through the real API but creates no real service or wallet charge. It cannot provide cellular data. Test emails and account pages are labeled and do not send a pretend installable QR code. Read endpoints always use actual authenticated catalog/client/service data.
 
-Live wallet purchases require **both** `RESELLPORTAL_TEST_MODE=false` and `RESELLPORTAL_ALLOW_LIVE_ORDERS=true`. Stripe and supplier modes must match in both directions: a Stripe test payment must never spend live wallet funds, and a live Stripe charge must not deliver a supplier test result. The selected supplier mode is captured on each order; changing environment mode cannot turn an old test checkout into a live supplier purchase.
+Boolean settings accept `yes`/`no` and existing `true`/`false` spellings, ignoring case and outer whitespace. Missing or misspelled test-mode values keep test mode enabled; missing or misspelled opt-ins keep payments/live purchases disabled. Live wallet purchases require **both** `RESELLPORTAL_TEST_MODE=no` and `RESELLPORTAL_ALLOW_LIVE_ORDERS=yes`. Payment and supplier modes must match: sandbox payments use supplier test mode; live payments use real eSIMs. Orders retain their supplier mode and separate sandbox/live payment references, so changing settings cannot turn an old test order into a live purchase. A real installation test requires a separately authorized live purchase.
 
 No live supplier order was placed during implementation. Before switching to live, complete authenticated test-mode acceptance, set up QR image hosts, review prices/tax/legal policies, and explicitly authorize any real test purchase. The wallet needs enough balance for the selected package's wholesale price; test-mode validation does not require funding.
 
 ## Install and connect
 
-Prerequisites: Node.js 22.12+ (Node 24 recommended), npm, PostgreSQL, a ResellPortal account with API Access, Stripe, Resend and Supabase Auth.
+Prerequisites: Node.js 22.12+ (Node 24 recommended), npm, PostgreSQL, a ResellPortal account with API Access, TransactWorld, Resend and Supabase Auth.
 
 ```powershell
 npm ci
@@ -75,7 +80,7 @@ The committed `netlify.toml` sets the root directory, publish directory `.next`,
 
 After pushing the configuration and lockfile, trigger a production deploy with the build cache cleared. Confirm the deploy log applies `@netlify/plugin-nextjs` and packages `___netlify-server-handler`. If a deployment is marked Published but every route returns Netlify's generic 404 page, inspect the runtime packaging and effective publish directory before changing database credentials. Public assets should be copied into the adapter's static output and dynamic routes handled by the generated function.
 
-Netlify does not execute `vercel.json` cron definitions. Before accepting live payments, configure a scheduler to call the authenticated fulfillment endpoint every minute and the catalog endpoint every six hours. Checkout rejects supplier prices older than 24 hours.
+Netlify does not execute `vercel.json` cron definitions. Native functions in `netlify/functions` schedule payment recovery and fulfillment every minute and catalog refresh every six hours. They run only for the published production deploy, using runtime `context.deploy` metadata, and authenticate with Functions-scoped `CRON_SECRET`. Authenticated `?background=1` requests return 202 and use Next.js `after()`, keeping the scheduler invocation below its 30-second limit. Verify all three Scheduled badges and worker logs after deploying. Checkout rejects supplier prices older than 24 hours.
 
 ### Connection check
 
@@ -92,14 +97,14 @@ This prints response field names/types and QR image hostnames, excluding field v
 ## Real supplier flow
 
 1. Server reloads active, recently synchronized ResellPortal plans from PostgreSQL and calculates the price. Browser totals and stale legacy cart data are ignored. The cart uses a new storage key to retire the old sample cart.
-2. Stripe hosted Checkout collects payment. A signed payment webhook records the payment, advances the order to PAID and creates a durable provisioning job in one Prisma transaction.
+2. The browser POSTs a server-signed form to TransactWorld's exact hosted checkout endpoint. Signed notifications and returns trigger authenticated Inquiry; only a matching captured payment records money, advances the order to PAID and creates a durable provisioning job in one Prisma transaction. A short status `Y`, preauthorization or redirect alone cannot trigger fulfillment.
 3. The worker looks up the supplier client by purchase email. If absent, it calls documented `POST /clients` with name/email and setup email disabled. Client IDs are stored for the supplier order; portal passwords are not.
 4. Before purchasing, the worker durably marks the local reservation SUBMITTING. It sends `POST /orders` with `client_id`, `product_key: "esim"`, `package_code`, test mode and email suppression.
 5. The returned `service_id` is stored immediately. `esim_details` supplies the actual ICCID and QR image URL. Pending services are read through `GET /services/{id}`; no second purchase is made to poll status.
 6. Ready details are stored and the order is fulfilled. A separate email job fetches the actual QR image privately and attaches it using CID. Private order pages embed the image from the server. A QR-image URL is never encoded as though it were an LPA activation payload.
 7. Authenticated owners or signed guest links can view their order. Usage refresh calls `GET /services/{id}/usage`; exact byte amounts are converted to MB for display. An unissued eSIM (409) and unavailable carrier data (503) have distinct customer messages. Test services do not pretend to have live usage.
 
-ResellPortal documents no outbound reseller webhooks in its public knowledge base; supplier status is polled. Stripe webhooks remain the payment authority. The integration does not invent a ResellPortal top-up endpoint: imported plans have `supportsTopup=false`, and `ENABLE_TOPUPS` remains false until a real supported top-up contract is supplied.
+ResellPortal documents no outbound reseller webhooks in its public knowledge base; supplier status is polled. Payment capture is independently verified through TransactWorld Inquiry. No ResellPortal top-up endpoint is invented: imported plans have `supportsTopup=false`, and `ENABLE_TOPUPS=no` until a real supported contract is supplied.
 
 ### Retries and wallet protection
 
@@ -111,7 +116,7 @@ No supplier idempotency guarantee was included in the provided contract. Sending
 - Admin may link an already-created service after the server verifies the same client, package and test/live mode. The remote service ID is unique per provider.
 - If the operator has checked supplier services **and wallet transactions** and verified no purchase exists, a separate explicit confirmation and reconciliation note can authorize one new attempt. This action is audited. Do not use it merely because a response was slow.
 
-Paid failures remain visible with payment intact; they are not silently discarded. Refund money through Stripe, then let the full-refund webhook update the order or reconcile that existing refund in admin. Refund/payment event ordering is protected by PostgreSQL transaction locks. A supplier purchase already in flight may require direct supplier reconciliation.
+Paid failures remain visible with payment intact; they are not silently discarded. Refund money through the merchant dashboard, then reconcile the independently verified full refund in admin. Partial refunds and ambiguous reversals require operator review. Refund/payment event ordering is protected by PostgreSQL transaction locks. A supplier purchase already in flight may require direct supplier reconciliation.
 
 ## Catalog and pricing
 
@@ -121,29 +126,66 @@ Only the ten launch destinations are published. Country plans require a matching
 
 `price` is normalized from supplier USD dollars to integer USD cents. Retail uses the existing markup, fixed markup and minimum margin rules, with optional admin overrides, coupons and tax. Wholesale values never enter public DTOs or browser stores. Plan network/hotspot fields are nullable: no hotspot or carrier claim is manufactured when the catalog only supplies a speed label. No stock plans are hard-coded.
 
-Configuration: `MARKUP_PERCENT`, `FIXED_MARKUP_CENTS`, `MIN_MARGIN_CENTS`, `TAX_PERCENT` and fixed `USD_INR_RATE`. Review them for the business before launch. Currency conversion and final amounts are calculated server-side. No live exchange-rate API or tax-compliance engine is supplied.
+Configuration: `MARKUP_PERCENT`, `FIXED_MARKUP_CENTS`, `MIN_MARGIN_CENTS` and `TAX_PERCENT`. Review them for the business before launch. Currency conversion and final amounts are calculated server-side. No tax-compliance engine is supplied.
+
+### Currency conversion and readable checkout
+
+USD, EUR and AUD are offered throughout the storefront. INR is removed from the selector and new checkout validation; previous saved INR preferences reset to USD, and historical INR orders remain readable. Checkout accepts only the currencies approved for the merchant and listed in `TW_SUPPORTED_CURRENCIES`. The server fetches the free [Frankfurter v2 API](https://frankfurter.dev/) at `https://api.frankfurter.dev/v2/rates?base=USD&quotes=EUR,AUD`; no API key is required. Frankfurter publishes central-bank reference rates once or a few times per working day; these are not second-by-second market quotes. Responses are cached for five minutes, and open pages refresh every five minutes or after returning to the window. The footer displays the reference date and last check time.
+
+The response is validated for all three target currencies, correct base, distinct quotes, positive finite rates, publication dates and response age. During a brief upstream outage, previously validated display rates may be shown with a stale label for at most one hour. Without usable rates, converted prices are unavailable and USD remains supported. Converted checkout requires a current server snapshot. USD checkout does not depend on the rate API.
+
+Converted item amounts are rounded once to integer minor units, then summed so displayed items equal the subtotal. The browser sends the last reviewed quote total as a consistency check, and the server recalculates from trusted inventory and rates; it never accepts a client price as authoritative. If the total changes, checkout returns 409, refreshes the quote and requires another review. The selected rate, source, publication date and check time are recorded in an `EXCHANGE_RATE_LOCKED` audit entry. Existing pending checkouts retain their original stored amount when retried.
+
+Essential text is at least 14px, body text is 16px, and mobile plan/destination cards use a single readable column. Payment-brand artwork is served locally in the footer and checkout, with its license and source documented in `docs/visual-assets.md`.
 
 The catalog cron refreshes every six hours and checkout requires a sync within the last 24 hours. Sync preserves manual visibility/price overrides, deactivates removed SKUs, and disables overrides made unsafe by a new wholesale cost. Extend `src/lib/data/destinations.ts` to expand launch destinations; page routes and provider interfaces remain data-driven.
 
 Catalog writes use parameterized PostgreSQL upserts in batches of at most 100 plans, with a 30-second transaction limit and a 10-second acquisition wait per destination. This avoids the default five-second interactive-transaction failure caused by two remote database round trips per plan. All batches, margin-review audit entries and stale-plan deactivation commit together for a destination; a failed batch rolls back that destination's changes. Existing plan IDs, order references, creation dates, retail overrides and manually hidden status are preserved.
 
-## Stripe setup
+## TransactWorld setup
 
-Use Stripe test credentials while `RESELLPORTAL_TEST_MODE=true`. Run the official Stripe CLI:
+The normal checkout uses these switches for live payments and wallet-funded eSIM fulfilment:
 
-```powershell
-stripe listen --forward-to localhost:3000/api/stripe/webhook
+```dotenv
+PAYMENT_PROVIDER=transactworld
+PAYMENTS_ENABLED=yes
+TW_ENVIRONMENT=live
+RESELLPORTAL_TEST_MODE=no
+RESELLPORTAL_ALLOW_LIVE_ORDERS=yes
 ```
 
-Copy its `whsec_...` value into `STRIPE_WEBHOOK_SECRET`, restart Next.js, and purchase an actual imported plan with a Stripe test card such as `4242 4242 4242 4242`, future expiry and any CVC. A generic Stripe fixture event does not contain a valid application order and is intentionally rejected.
+These switches have been enabled in the private local environment at the user's request. Netlify variables are configured separately. Use the public HTTPS site URL for NEXT_PUBLIC_APP_URL, store-approved merchant credentials, approved payment currencies, a verified email sender and worker secrets. Configuration switches alone do not validate credentials. The previously saved merchant details were rejected during authentication and must be replaced with the store's approved credentials. No charged purchase has been made.
 
-For production, register `https://YOUR_DOMAIN/api/stripe/webhook` for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.expired` and `charge.refunded`. A browser success redirect never provisions an eSIM. Event, payment, amount, currency, session, supplier-mode and duplicate-delivery checks run server-side.
+The separate sandbox preview and its callbacks have been removed. PAYMENTS_ENABLED is the main yes/no checkout switch; turning it off closes new checkout without changing existing paid orders. The example environment retains safe disabled/sandbox defaults. Live callbacks must be publicly reachable; localhost cannot receive external payment notifications.
+
+```powershell
+npm run payments:check
+npm run payments:verify
+```
+
+`payments:check` prints every environment blocker without secrets or network requests. `payments:verify` authenticates the merchant only; it never submits a payment or supplier order. Normal store checkout also verifies merchant Inquiry access before creating a payable order. Production and live checkout require `NEXT_PUBLIC_APP_URL` to be a public HTTPS origin, such as `https://roamly11.netlify.app`.
+
+Hosted forms automatically send per-order return and notification URLs under `/api/payments/transactworld/return/{reference}` and `/api/payments/transactworld/notify/{reference}`. Configure/approve the public site and callbacks with the merchant account. Requests use `MD5(memberId|totype|amount|reference|redirectUrl|workingKey)`; full-status returns and short-status notifications use `MD5(paymentId|reference|amount|status|workingKey)`. The key is never sent to the browser. Authenticated Inquiry must independently confirm `capturesuccess`, short status `Y`, exact amount/currency and references before fulfillment; callback signatures alone never activate an eSIM.
+
+Inquiry tokens are kept only in memory, refreshed after 55 minutes or an authentication rejection, and can use `TW_MERCHANT_USERNAME` / `TW_PARTNER_ID` when required by the merchant account. An optional `TW_AUTH_TOKEN` overrides automatic authentication temporarily. Failed verification leaves the order pending; the scheduled payment worker retries using merchant-reference Inquiry. TransactWorld forms have no assumed local expiry, so cleanup never treats their age as proof of non-payment. Review genuinely abandoned reservations in the merchant dashboard.
+
+Sources: [Standard Checkout](https://docs.transactworld.com/integration/standard-checkout.php), [Backoffice Inquiry](https://docs.transactworld.com/integration/backoffice.php), [authentication](https://docs.transactworld.com/integration/transaction-AuthToken.php). Public HTTPS callback delivery, approved currencies and real merchant authentication still require account acceptance. No real charge or email was made during implementation.
 
 ## Supabase, Resend and admin
 
+Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from the correct Supabase project's API settings. Legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` remains supported. Server-side aliases are accepted, but secret/service-role keys are rejected for account sign-in. These account settings are separate from `DATABASE_URL` and from Netlify's environment: changing Netlify does not populate a local `.env`.
+
 Enable Supabase email auth and configure the app origin plus `/auth/callback` as an allowed PKCE callback. Configure production SMTP. The site verifies identity server-side and reads ADMIN/CUSTOMER roles from Prisma rather than editable auth metadata. The database migration enables RLS on application tables without public policies; Prisma must use a privileged server-only database connection. Do not expose plans/costs, orders, jobs or activation details through anonymous Supabase APIs.
 
+The default magic-link flow exchanges a code at `/auth/callback` and opens `/account/orders`. Open the link in the browser where it was requested. The documented token-hash email template is also supported through `/auth/confirm?token_hash=...&type=email`; the endpoint always redirects to local account orders rather than accepting arbitrary destinations. The login form allows another link after a 60-second cooldown. Verify Supabase's SMTP configuration for real customer addresses, not only organization members.
+
 Verify a Resend sender domain and set `RESEND_API_KEY`/`EMAIL_FROM`. A ready-email failure does not undo a provisioned service. Ready emails use stable idempotency keys and a seven-day signed guest link. Anyone with that private link can access that order; token cookies are HttpOnly, SameSite and Secure in production. QR details are not publicly cacheable or sent as referrers. An authenticated customer can also recover guest purchases by signing in with the same verified email.
+
+Account order history now paginates all purchases instead of stopping at 100. Fulfilled orders include a customer email-resend button in the history and private order page. Resends go only to the original purchase email, require verified account ownership or a valid private order cookie, apply a one-minute per-order cooldown and refuse active email-worker leases. They increment the email idempotency version and queue only that order's EMAIL job; they never enqueue or run a new supplier purchase. Unpaid/refunded orders cannot request installation emails. Email delivery still requires a verified sender; the current Resend domain was reported as `not_started` during the read-only check.
+
+The compatibility page is an interactive model-group search plus manual eSIM/unlock checks, with manufacturer settings instructions and links. Its curated reference is available without a database connection. It does not remotely scan phones or assert a model's carrier lock status.
+
+`/admin/setup` lists all configuration blockers for a verified administrator. `/api/status` exposes only the release identifier, currencies and availability booleans, allowing deployment verification without exposing credentials or customer data. Local source changes are not published until committed/pushed and deployed; `.env` values must be configured separately in Netlify.
 
 Sign in once with the intended admin email, set `ADMIN_EMAIL`, then:
 
@@ -155,9 +197,9 @@ The script only promotes an existing verified account and logs the action. `/adm
 
 ## Scheduling and deployment
 
-`vercel.json` schedules `/api/cron/fulfill` every minute and `/api/cron/catalog` every six hours. Both require `Authorization: Bearer CRON_SECRET`. Use a Vercel plan or external scheduler that supports these intervals and 300-second functions. The immediate webhook `after()` kick is an optimization; durable database jobs survive process exits. Monitor failed/stale jobs and supplier balance. For higher volume, move to a dedicated queue/worker.
+Netlify native schedules (and equivalent `vercel.json` entries) run `/api/cron/payments` and `/api/cron/fulfill` every minute, plus `/api/cron/catalog` every six hours. All require `Authorization: Bearer CRON_SECRET`. Native wrappers use the published deployment context and Netlify's primary site URL; redirects are rejected so worker credentials cannot be forwarded. The immediate callback `after()` kick is an optimization; durable jobs survive process exits. Monitor payment verification, failed/stale jobs and supplier balance. For higher volume, use a dedicated queue/worker.
 
-Deploy this Next.js project to Vercel with Node 24 and `npm run build`. Configure the same secrets there, use the final HTTPS domain, apply `npm run db:deploy` before serving the new version, seed destination content, then synchronize real supplier inventory. Set up callbacks, Stripe webhook, cron and email DNS. No publication/deployment or wallet-funded purchase is performed by source changes alone.
+Deploy through the configured Netlify build with Node 24, hosted database credentials, TransactWorld settings, worker secrets and verified email sender. Environment changes require redeployment; local `.env` is not uploaded automatically. Confirm the three scheduled functions and public merchant callbacks before live sales. Source changes do not publish the site or authorize a wallet-funded purchase.
 
 ## Architecture
 
@@ -200,3 +242,5 @@ Browser tests run an isolated storefront on port 3100 with service credentials e
 - Establish support and alerts for paid failures, wallet balance, queue age, email delivery and refunds. Resend idempotency is limited to its provider retention window; a very late ambiguous email retry can repeat an email, not a supplier purchase.
 - Keep secrets out of source control, set the trusted proxy correctly for IP rate limiting, review retention/backups and consent for optional analytics. Original generated imagery and prompts remain in `docs/visual-assets.md`.
 - Top-ups remain disabled because no ResellPortal eSIM top-up API was documented. Add only a verified vendor contract, not a made-up endpoint.
+
+Device compatibility uses a model search plus customer-confirmed eSIM and carrier-unlock checks. These are saved in the browser for 30 days, required and validated again by checkout, and recorded as customer self-reports in the order audit. Changing the model clears both answers. The website does not remotely inspect phone hardware or carrier locks; manufacturer instructions are linked on the checker.

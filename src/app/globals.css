@@ -5,7 +5,7 @@
 }
 :root {
   --ink: #202326;
-  --muted: #707271;
+  --muted: #59616b;
   --purple: #6747e8;
   --lavender: #eee9fc;
   --cream: #faf9f6;
@@ -22,7 +22,7 @@ body {
   background: var(--cream);
   color: var(--ink);
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
 }
@@ -119,7 +119,7 @@ summary:focus-visible {
   text-transform: uppercase;
   letter-spacing: 0.17em;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--purple);
   display: flex;
   gap: 8px;
@@ -150,7 +150,7 @@ summary:focus-visible {
   gap: 10px;
   color: var(--purple);
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
   white-space: nowrap;
 }
 .button {
@@ -164,7 +164,7 @@ summary:focus-visible {
   padding: 14px 23px;
   border-radius: 9px;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
   min-height: 48px;
   line-height: 1.4;
 }
@@ -198,7 +198,7 @@ summary:focus-visible {
   gap: 20px;
   background: #eae4fb;
   color: #4b3a80;
-  font-size: 10px;
+  font-size: 14px;
   letter-spacing: 0.02em;
 }
 .announcement a {
@@ -246,7 +246,7 @@ summary:focus-visible {
 .desktop-nav {
   display: flex;
   gap: 28px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 .desktop-nav a:hover {
@@ -261,7 +261,7 @@ summary:focus-visible {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
 }
 .currency-select select {
@@ -284,7 +284,7 @@ summary:focus-visible {
   gap: 6px;
 }
 .cart-link span {
-  font-size: 9px;
+  font-size: 14px;
   display: grid;
   place-items: center;
   width: 17px;
@@ -323,7 +323,7 @@ summary:focus-visible {
   width: fit-content;
   text-transform: none;
   letter-spacing: 0.02em;
-  font-size: 10px;
+  font-size: 14px;
   margin-bottom: 22px;
 }
 .hero h1 {
@@ -364,7 +364,7 @@ summary:focus-visible {
   min-width: 0;
   border: 0;
   background: transparent;
-  font-size: 12px;
+  font-size: 14px;
   outline: none;
   padding: 10px 0;
 }
@@ -401,17 +401,17 @@ summary:focus-visible {
   justify-content: space-between;
   padding: 10px;
   border-radius: 7px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .autocomplete a:hover {
   background: var(--lavender);
 }
 .autocomplete p {
   padding: 12px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .trending {
-  font-size: 10px;
+  font-size: 14px;
   display: flex;
   flex-wrap: wrap;
   gap: 9px;
@@ -431,7 +431,7 @@ summary:focus-visible {
   align-items: center;
   gap: 10px;
   margin-top: 29px;
-  font-size: 10px;
+  font-size: 14px;
   color: #63665e;
 }
 .hero-proof svg {
@@ -490,7 +490,7 @@ summary:focus-visible {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  font-size: 10px;
+  font-size: 14px;
   line-height: 1.8;
   transform: rotate(12deg);
   box-shadow: 0 0 0 1px #ded6a2;
@@ -514,11 +514,11 @@ summary:focus-visible {
 }
 .floating-card strong {
   display: block;
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: -0.01em;
 }
 .floating-card p {
-  font-size: 10px;
+  font-size: 14px;
   margin-top: 3px;
 }
 .connected-card {
@@ -566,7 +566,7 @@ summary:focus-visible {
   justify-content: center;
   align-items: center;
   gap: 11px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
 }
 .trust-item svg {
@@ -592,7 +592,7 @@ summary:focus-visible {
   background: transparent;
   border: 1px solid var(--line);
   border-radius: 30px;
-  font-size: 11px;
+  font-size: 14px;
   padding: 8px 16px;
   white-space: nowrap;
   min-height: 35px;
@@ -646,7 +646,7 @@ summary:focus-visible {
   backdrop-filter: blur(12px);
   padding: 4px 9px;
   border-radius: 20px;
-  font-size: 8px;
+  font-size: 14px;
   font-weight: 600;
 }
 .destination-info {
@@ -662,20 +662,20 @@ summary:focus-visible {
   line-height: 1.4;
 }
 .destination-info p {
-  font-size: 10px;
+  font-size: 14px;
   margin-top: 5px;
 }
 .destination-info p strong {
   font-weight: 700;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 14px;
 }
 .destination-info p > span {
-  font-size: 9px;
+  font-size: 14px;
   color: #979790;
 }
 .plan-count {
-  font-size: 11px;
+  font-size: 14px;
   padding-left: 1px;
   margin-top: 4px;
 }
@@ -697,7 +697,7 @@ summary:focus-visible {
 }
 .steps-top p {
   margin-top: 15px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .steps-grid {
   display: grid;
@@ -744,7 +744,7 @@ summary:focus-visible {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: bold;
   border: 1px solid #ddd5ec;
 }
@@ -753,7 +753,7 @@ summary:focus-visible {
   letter-spacing: -0.025em;
 }
 .step p {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.9;
   margin: 13px auto 0;
   max-width: 240px;
@@ -778,12 +778,12 @@ summary:focus-visible {
   border-radius: 12px;
 }
 .benefit h3 {
-  font-size: 15px;
+  font-size: 16px;
   letter-spacing: -0.02em;
   margin: 3px 0 8px;
 }
 .benefit p {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.85;
   max-width: 270px;
 }
@@ -795,7 +795,7 @@ summary:focus-visible {
   justify-content: center;
 }
 .feature-heading p {
-  font-size: 13px;
+  font-size: 14px;
   margin-top: 15px;
 }
 .plan-grid {
@@ -825,12 +825,12 @@ summary:focus-visible {
   color: white;
   border-radius: 20px;
   padding: 3px 13px;
-  font-size: 9px;
+  font-size: 14px;
   white-space: nowrap;
   font-weight: 600;
 }
 .plan-country {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   margin-bottom: 22px;
 }
@@ -839,7 +839,7 @@ summary:focus-visible {
 }
 .plan-card h3 span {
   display: block;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 400;
   letter-spacing: 0;
   color: var(--muted);
@@ -855,7 +855,7 @@ summary:focus-visible {
   display: flex;
   gap: 8px;
   align-items: center;
-  font-size: 10px;
+  font-size: 14px;
   color: #6b6f72;
 }
 .plan-specs svg {
@@ -874,12 +874,12 @@ summary:focus-visible {
   letter-spacing: -0.04em;
 }
 .plan-price span {
-  font-size: 8px;
+  font-size: 14px;
   color: var(--muted);
 }
 .plan-card .button {
   width: 100%;
-  font-size: 11px;
+  font-size: 14px;
   padding: 12px 10px;
   margin-top: auto;
 }
@@ -899,7 +899,7 @@ summary:focus-visible {
   max-width: 420px;
 }
 .compat-banner p {
-  font-size: 12px;
+  font-size: 14px;
   margin: 16px 0 24px;
   max-width: 380px;
   color: #6c6480;
@@ -940,7 +940,7 @@ summary:focus-visible {
   background: #d9d0f2;
 }
 .phone-outline > span {
-  font-size: 9px;
+  font-size: 14px;
   font-weight: 600;
 }
 .phone-outline svg {
@@ -952,7 +952,7 @@ summary:focus-visible {
   gap: 100px;
 }
 .faq-intro > p {
-  font-size: 13px;
+  font-size: 14px;
   margin-top: 20px;
   max-width: 270px;
 }
@@ -967,7 +967,7 @@ summary:focus-visible {
 }
 .faq-list summary {
   list-style: none;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -987,7 +987,7 @@ summary:focus-visible {
   transform: rotate(45deg);
 }
 .faq-list details p {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.9;
   padding: 0 30px 23px 0;
 }
@@ -1007,7 +1007,7 @@ summary:focus-visible {
   letter-spacing: -0.035em;
 }
 .newsletter-strip p {
-  font-size: 11px;
+  font-size: 14px;
   color: #c6bfd3;
   margin-top: 8px;
 }
@@ -1028,7 +1028,7 @@ summary:focus-visible {
   padding-bottom: 45px;
 }
 .footer-brand p {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.8;
   margin-top: 17px;
   color: #7b7b74;
@@ -1037,12 +1037,12 @@ summary:focus-visible {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 9px;
+  font-size: 14px;
   color: #8c8a83;
   margin-top: 20px;
 }
 .footer-main h3 {
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0;
   margin: 9px 0 22px;
 }
@@ -1052,7 +1052,7 @@ summary:focus-visible {
   justify-content: space-between;
   max-width: 145px;
   color: #7a7b74;
-  font-size: 11px;
+  font-size: 14px;
   margin-top: 12px;
 }
 .footer-main a:hover {
@@ -1064,7 +1064,7 @@ summary:focus-visible {
   display: flex;
   justify-content: space-between;
   gap: 20px;
-  font-size: 9px;
+  font-size: 14px;
   color: #8c8a84;
 }
 .footer-bottom span {
@@ -1081,10 +1081,10 @@ summary:focus-visible {
 }
 .page-hero > p {
   max-width: 640px;
-  font-size: 15px;
+  font-size: 16px;
 }
 .breadcrumb {
-  font-size: 11px;
+  font-size: 14px;
   display: flex;
   gap: 9px;
   align-items: center;
@@ -1099,7 +1099,7 @@ summary:focus-visible {
   background: #f5edce;
   border: 1px solid #e5d8a6;
   border-radius: 9px;
-  font-size: 11px;
+  font-size: 14px;
   color: #786839;
   margin: 15px 0 25px;
 }
@@ -1113,7 +1113,7 @@ summary:focus-visible {
   border-radius: 9px;
   max-width: 360px;
   width: 100%;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--muted);
 }
 .input-search input {
@@ -1139,7 +1139,7 @@ summary:focus-visible {
 }
 .empty-state p {
   max-width: 430px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .destination-hero {
   display: grid;
@@ -1172,7 +1172,7 @@ summary:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 14px;
   border: 1px solid var(--line);
   padding: 7px 12px;
   border-radius: 7px;
@@ -1193,7 +1193,7 @@ summary:focus-visible {
   margin-bottom: 15px;
 }
 .info-panel p {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.9;
 }
 .checkout-layout {
@@ -1217,7 +1217,7 @@ summary:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   margin-bottom: 20px;
 }
@@ -1232,7 +1232,7 @@ summary:focus-visible {
   width: 100%;
 }
 .field small {
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--muted);
 }
@@ -1244,13 +1244,17 @@ summary:focus-visible {
 .check-label {
   display: flex;
   gap: 10px;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--muted);
   margin-block: 20px;
 }
 .check-label input {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
   margin-top: 4px;
   accent-color: var(--purple);
+  align-self: flex-start;
 }
 .check-label a {
   color: var(--purple);
@@ -1267,11 +1271,11 @@ summary:focus-visible {
   padding-top: 0;
 }
 .cart-item h3 {
-  font-size: 15px;
+  font-size: 16px;
   letter-spacing: -0.02em;
 }
 .cart-item p {
-  font-size: 11px;
+  font-size: 14px;
   margin-top: 5px;
 }
 .cart-item-price {
@@ -1293,7 +1297,7 @@ summary:focus-visible {
 .summary-line {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 14px;
   margin-top: 13px;
   color: var(--muted);
 }
@@ -1310,17 +1314,17 @@ summary:focus-visible {
   justify-content: center;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--muted);
   margin-top: 16px;
 }
 .error-text {
-  font-size: 12px;
+  font-size: 14px;
   color: #b23e3e;
   margin-block: 12px;
 }
 .success-text {
-  font-size: 12px;
+  font-size: 14px;
   color: #2f7856;
   margin-block: 12px;
 }
@@ -1336,7 +1340,7 @@ summary:focus-visible {
   gap: 6px;
 }
 .account-nav a {
-  font-size: 13px;
+  font-size: 14px;
   padding: 12px;
   border-radius: 8px;
   border: 1px solid var(--line);
@@ -1356,7 +1360,7 @@ summary:focus-visible {
   margin-bottom: 12px;
 }
 .account-content > p {
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 26px;
 }
 .order-card {
@@ -1377,7 +1381,7 @@ summary:focus-visible {
   font-size: 16px;
 }
 .order-card p {
-  font-size: 12px;
+  font-size: 14px;
 }
 .status {
   display: inline-flex;
@@ -1385,7 +1389,7 @@ summary:focus-visible {
   border-radius: 25px;
   background: #efebfa;
   color: #6347b1;
-  font-size: 9px;
+  font-size: 14px;
   padding: 5px 10px;
   text-transform: capitalize;
   white-space: nowrap;
@@ -1442,7 +1446,7 @@ summary:focus-visible {
 }
 .code-block {
   font-family: monospace;
-  font-size: 12px;
+  font-size: 14px;
   word-break: break-all;
   background: #f2f0f7;
   border-radius: 7px;
@@ -1452,7 +1456,7 @@ summary:focus-visible {
 .instruction-list {
   padding-left: 20px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 2.2;
 }
 .warning {
@@ -1460,7 +1464,7 @@ summary:focus-visible {
   padding: 15px 20px;
   border: 1px solid #ebdab2;
   border-radius: 9px;
-  font-size: 12px;
+  font-size: 14px;
   color: #806229;
   margin-block: 20px;
 }
@@ -1477,7 +1481,7 @@ summary:focus-visible {
   background: white;
 }
 .stat-card p {
-  font-size: 11px;
+  font-size: 14px;
 }
 .stat-card strong {
   display: block;
@@ -1494,7 +1498,7 @@ summary:focus-visible {
 table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 11px;
+  font-size: 14px;
   white-space: nowrap;
 }
 th,
@@ -1547,15 +1551,15 @@ tr:last-child td {
   flex-shrink: 0;
 }
 .device-card h3 {
-  font-size: 15px;
+  font-size: 16px;
   letter-spacing: -0.015em;
   margin-block: 5px 10px;
 }
 .device-card p {
-  font-size: 11px;
+  font-size: 14px;
 }
 .device-card span {
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--purple);
 }
@@ -1590,7 +1594,7 @@ tr:last-child td {
   font-size: 20px;
 }
 .support-grid p {
-  font-size: 12px;
+  font-size: 14px;
   margin-bottom: 20px;
 }
 .login-box {
@@ -1598,7 +1602,7 @@ tr:last-child td {
   margin: 55px auto 85px;
 }
 .login-box p {
-  font-size: 13px;
+  font-size: 14px;
   margin: 15px 0 25px;
 }
 .full-width {
@@ -1655,7 +1659,7 @@ tr:last-child td {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .detail-list dt {
   color: var(--muted);
@@ -1671,7 +1675,7 @@ tr:last-child td {
   margin: 20px 0;
 }
 .admin-actions .button {
-  font-size: 11px;
+  font-size: 14px;
 }
 .muted {
   color: var(--muted);
@@ -1693,7 +1697,7 @@ tr:last-child td {
   }
   .desktop-nav {
     gap: 18px;
-    font-size: 11px;
+    font-size: 14px;
   }
   .nav-actions {
     gap: 12px;
@@ -1715,7 +1719,7 @@ tr:last-child td {
     width: 83px;
     height: 83px;
     right: -5px;
-    font-size: 8px;
+    font-size: 14px;
   }
   .connected-card {
     left: -18px;
@@ -1739,7 +1743,7 @@ tr:last-child td {
     padding: 25px 17px;
   }
   .plan-card .button {
-    font-size: 10px;
+    font-size: 14px;
   }
   .plan-price strong {
     font-size: 22px;
@@ -1776,7 +1780,7 @@ tr:last-child td {
     display: flex;
     justify-content: space-between;
     padding: 11px 0;
-    font-size: 13px;
+    font-size: 14px;
   }
   .hero {
     padding-top: 30px;
@@ -1803,7 +1807,7 @@ tr:last-child td {
     border-radius: 150px 150px 20px 20px;
   }
   .hero-description {
-    font-size: 12px;
+    font-size: 14px;
     margin-top: 18px;
   }
   .hero-search {
@@ -1811,7 +1815,7 @@ tr:last-child td {
     padding-left: 12px;
   }
   .hero-search input {
-    font-size: 11px;
+    font-size: 14px;
   }
   .hero-search button {
     width: 36px;
@@ -1820,7 +1824,7 @@ tr:last-child td {
   .hero-proof {
     gap: 7px;
     flex-wrap: wrap;
-    font-size: 9px;
+    font-size: 14px;
     margin-top: 22px;
   }
   .floating-card {
@@ -1828,10 +1832,10 @@ tr:last-child td {
     padding: 10px 12px;
   }
   .floating-card strong {
-    font-size: 10px;
+    font-size: 14px;
   }
   .floating-card p {
-    font-size: 8px;
+    font-size: 14px;
   }
   .connected-card {
     left: 0;
@@ -1852,12 +1856,12 @@ tr:last-child td {
     top: 6px;
   }
   .hero-caption {
-    font-size: 12px;
+    font-size: 14px;
     left: 35px;
     bottom: 0;
   }
   .trust-item {
-    font-size: 9px;
+    font-size: 14px;
     gap: 8px;
   }
   .trust-item svg {
@@ -1887,10 +1891,10 @@ tr:last-child td {
     gap: 25px;
   }
   .step h3 {
-    font-size: 15px;
+    font-size: 16px;
   }
   .step p {
-    font-size: 11px;
+    font-size: 14px;
   }
   .step:not(:last-child):after {
     width: 27%;
@@ -1927,7 +1931,7 @@ tr:last-child td {
   }
   .footer-bottom {
     flex-wrap: wrap;
-    font-size: 8px;
+    font-size: 14px;
   }
   .newsletter-strip {
     padding: 30px;
@@ -1960,7 +1964,7 @@ tr:last-child td {
   }
   .account-nav a {
     padding: 9px 12px;
-    font-size: 11px;
+    font-size: 14px;
   }
   .account-nav form {
     margin: 0;
@@ -1968,7 +1972,7 @@ tr:last-child td {
   .account-nav .button {
     min-height: 38px;
     padding: 9px 12px;
-    font-size: 11px;
+    font-size: 14px;
   }
   .support-grid {
     grid-template-columns: 1fr 1fr;
@@ -1985,12 +1989,12 @@ tr:last-child td {
     width: calc(100% - 36px);
   }
   .announcement {
-    font-size: 8px;
+    font-size: 14px;
     gap: 9px;
     min-height: 29px;
   }
   .announcement a {
-    font-size: 8px;
+    font-size: 14px;
   }
   .nav-inner {
     height: 72px;
@@ -2007,7 +2011,7 @@ tr:last-child td {
     gap: 9px;
   }
   .currency-select {
-    font-size: 10px;
+    font-size: 14px;
     gap: 2px;
   }
   .currency-select > svg {
@@ -2025,7 +2029,7 @@ tr:last-child td {
   .cart-link span {
     height: 15px;
     width: 15px;
-    font-size: 8px;
+    font-size: 14px;
   }
   .hero {
     padding-top: 28px;
@@ -2039,7 +2043,7 @@ tr:last-child td {
     padding: 0;
   }
   .hero .eyebrow {
-    font-size: 9px;
+    font-size: 14px;
     margin-bottom: 20px;
   }
   .hero h1 {
@@ -2049,7 +2053,7 @@ tr:last-child td {
   }
   .hero-description {
     max-width: 340px;
-    font-size: 13px;
+    font-size: 14px;
     margin-top: 20px;
   }
   .search-wrapper {
@@ -2060,7 +2064,7 @@ tr:last-child td {
     padding: 7px 7px 7px 15px;
   }
   .hero-search input {
-    font-size: 12px;
+    font-size: 14px;
   }
   .hero-search button {
     width: 44px;
@@ -2068,10 +2072,10 @@ tr:last-child td {
   }
   .hero-proof {
     margin-top: 22px;
-    font-size: 9px;
+    font-size: 14px;
   }
   .trending {
-    font-size: 9px;
+    font-size: 14px;
   }
   .hero-art {
     height: 410px;
@@ -2099,10 +2103,10 @@ tr:last-child td {
     gap: 10px;
   }
   .floating-card strong {
-    font-size: 11px;
+    font-size: 14px;
   }
   .floating-card p {
-    font-size: 9px;
+    font-size: 14px;
   }
   .connected-card {
     left: 0;
@@ -2126,7 +2130,7 @@ tr:last-child td {
   .trust-item {
     justify-content: start;
     padding-left: 12px;
-    font-size: 10px;
+    font-size: 14px;
     gap: 9px;
   }
   .trust-item + .trust-item {
@@ -2144,16 +2148,16 @@ tr:last-child td {
     font-size: 29px;
   }
   .section-heading p {
-    font-size: 12px;
+    font-size: 14px;
     margin-top: 11px;
   }
   .section-heading > .text-link {
-    font-size: 10px;
+    font-size: 14px;
     margin-top: 5px;
     gap: 5px;
   }
   .eyebrow {
-    font-size: 9px;
+    font-size: 14px;
     letter-spacing: 0.15em;
     margin-bottom: 13px;
   }
@@ -2170,7 +2174,7 @@ tr:last-child td {
   }
   .filter-tabs button {
     padding: 7px 12px;
-    font-size: 10px;
+    font-size: 14px;
     min-height: 34px;
   }
   .destination-grid {
@@ -2188,7 +2192,7 @@ tr:last-child td {
     font-size: 17px;
   }
   .photo-badge {
-    font-size: 7px;
+    font-size: 14px;
     padding: 3px 6px;
     right: 7px;
     top: 8px;
@@ -2198,14 +2202,14 @@ tr:last-child td {
     align-items: start;
   }
   .destination-info h3 {
-    font-size: 13px;
+    font-size: 14px;
   }
   .destination-info p {
-    font-size: 9px;
+    font-size: 14px;
     margin-top: 4px;
   }
   .destination-info p strong {
-    font-size: 11px;
+    font-size: 14px;
   }
   .destination-info p > span {
     display: none;
@@ -2220,7 +2224,7 @@ tr:last-child td {
     height: 16px;
   }
   .plan-count {
-    font-size: 9px;
+    font-size: 14px;
   }
   .steps-grid {
     grid-template-columns: 1fr;
@@ -2248,7 +2252,7 @@ tr:last-child td {
   .step p {
     margin: 7px 0 0;
     max-width: 260px;
-    font-size: 12px;
+    font-size: 14px;
   }
   .step:not(:last-child):after {
     display: none;
@@ -2260,7 +2264,7 @@ tr:last-child td {
     font-size: 29px;
   }
   .steps-top p {
-    font-size: 12px;
+    font-size: 14px;
   }
   .benefits-grid {
     gap: 28px 20px;
@@ -2270,10 +2274,10 @@ tr:last-child td {
     gap: 12px;
   }
   .benefit h3 {
-    font-size: 13px;
+    font-size: 14px;
   }
   .benefit p {
-    font-size: 11px;
+    font-size: 14px;
     line-height: 1.8;
   }
   .benefit > span {
@@ -2281,7 +2285,7 @@ tr:last-child td {
     height: 38px;
   }
   .feature-heading p {
-    font-size: 12px;
+    font-size: 14px;
   }
   .plan-grid {
     gap: 28px 12px;
@@ -2291,7 +2295,7 @@ tr:last-child td {
     border-radius: 12px;
   }
   .plan-country {
-    font-size: 9px;
+    font-size: 14px;
     line-height: 1.6;
     min-height: 27px;
     margin-bottom: 15px;
@@ -2300,14 +2304,14 @@ tr:last-child td {
     font-size: 30px;
   }
   .plan-card h3 span {
-    font-size: 8px;
+    font-size: 14px;
   }
   .plan-specs {
     gap: 10px;
     margin-top: 20px;
   }
   .plan-specs span {
-    font-size: 8px;
+    font-size: 14px;
     gap: 5px;
   }
   .plan-specs svg {
@@ -2324,7 +2328,7 @@ tr:last-child td {
     font-size: 22px;
   }
   .plan-card .button {
-    font-size: 9px;
+    font-size: 14px;
     gap: 5px;
     padding: 10px 5px;
     min-height: 41px;
@@ -2333,7 +2337,7 @@ tr:last-child td {
     width: 13px;
   }
   .popular-tag {
-    font-size: 8px;
+    font-size: 14px;
     padding: 3px 10px;
   }
   .compat-banner {
@@ -2346,7 +2350,7 @@ tr:last-child td {
     font-size: 30px;
   }
   .compat-banner p {
-    font-size: 12px;
+    font-size: 14px;
   }
   .phone-art {
     margin-bottom: 28px;
@@ -2361,18 +2365,18 @@ tr:last-child td {
   }
   .faq-intro > p {
     max-width: none;
-    font-size: 12px;
+    font-size: 14px;
     margin-top: 16px;
   }
   .faq-intro .text-link {
     margin-top: 17px;
   }
   .faq-list summary {
-    font-size: 12px;
+    font-size: 14px;
     padding: 18px 0;
   }
   .faq-list details p {
-    font-size: 11px;
+    font-size: 14px;
   }
   .newsletter-strip {
     flex-direction: column;
@@ -2396,7 +2400,7 @@ tr:last-child td {
     grid-column: 1 / -1;
   }
   .footer-brand p {
-    font-size: 12px;
+    font-size: 14px;
     margin-top: 12px;
   }
   .footer-brand p br {
@@ -2409,7 +2413,7 @@ tr:last-child td {
     grid-column: auto;
   }
   .footer-main > div:not(:first-child) > a {
-    font-size: 10px;
+    font-size: 14px;
     max-width: 150px;
   }
   .footer-main h3 {
@@ -2418,7 +2422,7 @@ tr:last-child td {
   .footer-bottom {
     flex-direction: column;
     gap: 10px;
-    font-size: 9px;
+    font-size: 14px;
   }
   .page-hero {
     padding: 35px 0 30px;
@@ -2428,14 +2432,14 @@ tr:last-child td {
     margin-bottom: 15px;
   }
   .page-hero > p {
-    font-size: 13px;
+    font-size: 14px;
   }
   .breadcrumb {
-    font-size: 10px;
+    font-size: 14px;
     margin-bottom: 22px;
   }
   .preview-notice {
-    font-size: 10px;
+    font-size: 14px;
   }
   .destination-hero {
     grid-template-columns: 1fr;
@@ -2446,7 +2450,7 @@ tr:last-child td {
     font-size: 41px;
   }
   .destination-hero > div > p {
-    font-size: 13px;
+    font-size: 14px;
     margin-top: 15px;
   }
   .destination-hero-image {
@@ -2457,7 +2461,7 @@ tr:last-child td {
     margin-top: 20px;
   }
   .destination-specs span {
-    font-size: 9px;
+    font-size: 14px;
     padding: 6px 9px;
   }
   .info-panel {
@@ -2467,7 +2471,7 @@ tr:last-child td {
     font-size: 21px;
   }
   .info-panel p {
-    font-size: 12px;
+    font-size: 14px;
   }
   .mobile-buy {
     display: flex;
@@ -2485,7 +2489,7 @@ tr:last-child td {
     padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
   .mobile-buy > div {
-    font-size: 10px;
+    font-size: 14px;
     color: var(--muted);
   }
   .mobile-buy strong {
@@ -2494,7 +2498,7 @@ tr:last-child td {
     font-size: 17px;
   }
   .mobile-buy .button {
-    font-size: 11px;
+    font-size: 14px;
     min-height: 43px;
     padding: 10px 17px;
   }
@@ -2513,11 +2517,11 @@ tr:last-child td {
     gap: 12px;
   }
   .cart-item-price {
-    font-size: 12px;
+    font-size: 14px;
     gap: 7px;
   }
   .cart-item h3 {
-    font-size: 13px;
+    font-size: 14px;
   }
   .account-layout {
     padding-top: 25px;
@@ -2530,7 +2534,7 @@ tr:last-child td {
     gap: 7px;
   }
   .account-nav a {
-    font-size: 10px;
+    font-size: 14px;
     padding: 9px;
   }
   .account-nav svg {
@@ -2550,10 +2554,10 @@ tr:last-child td {
     font-size: 14px;
   }
   .order-card p {
-    font-size: 11px;
+    font-size: 14px;
   }
   .order-lines .button {
-    font-size: 10px;
+    font-size: 14px;
     padding: 10px 12px;
     min-height: 40px;
   }
@@ -2573,7 +2577,7 @@ tr:last-child td {
     font-size: 24px;
   }
   .stat-card p {
-    font-size: 10px;
+    font-size: 14px;
   }
   .device-toolbar {
     flex-direction: column;
@@ -2600,19 +2604,19 @@ tr:last-child td {
     font-size: 23px;
   }
   .prose p {
-    font-size: 13px;
+    font-size: 14px;
   }
   .login-box {
     margin: 35px auto 55px;
   }
   .detail-list {
-    font-size: 11px;
+    font-size: 14px;
   }
   .admin-actions {
     gap: 8px;
   }
   .admin-actions .button {
-    font-size: 10px;
+    font-size: 14px;
     padding: 11px;
   }
   .empty-state {
@@ -2620,7 +2624,7 @@ tr:last-child td {
   }
   .error-text,
   .success-text {
-    font-size: 11px;
+    font-size: 14px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -2630,5 +2634,688 @@ tr:last-child td {
     scroll-behavior: auto !important;
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* Readable text, comfortable controls and a consistent storefront rhythm. */
+.hero-stamp {
+  width: 128px;
+  height: 128px;
+  line-height: 1.35;
+  padding: 8px;
+  text-align: center;
+}
+.hero-proof {
+  flex-wrap: wrap;
+}
+.hero-description {
+  font-size: 18px;
+  line-height: 1.75;
+}
+.button {
+  font-size: 15px;
+  min-height: 48px;
+}
+.nav-inner {
+  gap: 22px;
+}
+.desktop-nav {
+  gap: 20px;
+}
+.nav-actions {
+  gap: 14px;
+  flex-shrink: 0;
+}
+.currency-select {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.currency-select select {
+  min-height: 42px;
+  max-width: none;
+  width: 62px;
+}
+.icon-link,
+.cart-link {
+  min-width: 40px;
+  min-height: 44px;
+}
+.announcement {
+  padding: 10px 20px;
+  line-height: 1.5;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+.destination-info h3 {
+  font-size: 19px;
+  line-height: 1.4;
+  letter-spacing: -0.025em;
+}
+.destination-info p,
+.destination-info p strong {
+  font-size: 15px;
+}
+.plan-card {
+  padding: 30px 24px;
+  border-radius: 18px;
+  box-shadow: 0 4px 20px #20232604;
+}
+.plan-card h3 {
+  font-size: 36px;
+}
+.plan-card h3 span,
+.plan-specs span,
+.plan-price span {
+  line-height: 1.55;
+}
+.plan-specs svg {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+}
+.plan-card .button {
+  min-height: 48px;
+  font-size: 15px;
+  gap: 10px;
+}
+.plan-price strong {
+  font-size: 29px;
+}
+.plan-price {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 2px;
+}
+.faq-list summary {
+  font-size: 16px;
+  line-height: 1.6;
+}
+.faq-list details p,
+.info-panel p {
+  font-size: 15px;
+}
+.footer-main > div:not(:first-child) > a {
+  max-width: 190px;
+  line-height: 1.6;
+  color: #525a64;
+}
+.footer-brand p,
+.footer-note,
+.footer-bottom {
+  color: #59616b;
+}
+.footer-main h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.footer-assurance {
+  border-top: 1px solid #dddbd4;
+  padding-block: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.payment-assurance {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.payment-assurance > svg {
+  color: var(--purple);
+}
+.payment-assurance strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.payment-assurance p {
+  font-size: 14px;
+}
+.payment-methods {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.payment-methods img {
+  object-fit: contain;
+  width: 66px;
+  height: 42px;
+}
+.panel > .payment-methods {
+  justify-content: center;
+  margin-top: 18px;
+}
+.footer-bottom {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  line-height: 1.7;
+}
+.currency-rate-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.currency-rate-note svg {
+  flex-shrink: 0;
+}
+@media (max-width: 1100px) {
+  .desktop-nav {
+    display: none;
+  }
+  .mobile-menu {
+    display: grid;
+  }
+  .mobile-nav {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 24px 22px;
+    border-top: 1px solid var(--line);
+  }
+  .mobile-nav a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    font-size: 16px;
+  }
+  .footer-main {
+    gap: 32px;
+  }
+}
+@media (max-width: 600px) {
+  .hero-description {
+    font-size: 16px;
+  }
+  .hero-stamp {
+    display: none;
+  }
+  .announcement a {
+    display: none;
+  }
+  .nav-inner {
+    height: 78px;
+    gap: 8px;
+  }
+  .nav-actions {
+    gap: 5px;
+  }
+  .brand {
+    font-size: 27px;
+    gap: 4px;
+  }
+  .nav-actions > .icon-link {
+    display: none;
+  }
+  .nav-actions > .mobile-menu {
+    display: grid;
+  }
+  .currency-select {
+    padding-inline: 5px;
+  }
+  .currency-select select {
+    width: 59px;
+  }
+  .destination-grid,
+  .plan-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  .destination-image {
+    height: 230px;
+    border-radius: 16px;
+  }
+  .destination-info h3 {
+    font-size: 20px;
+  }
+  .destination-info .round-arrow {
+    width: 40px;
+    height: 40px;
+  }
+  .photo-badge {
+    padding: 5px 10px;
+  }
+  .plan-card {
+    padding: 30px 26px;
+  }
+  .filter-tabs button {
+    min-height: 44px;
+    padding: 9px 16px;
+  }
+  .footer-assurance {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+  .footer-bottom {
+    align-items: flex-start;
+  }
+  .currency-rate-note {
+    align-items: flex-start;
+  }
+}
+
+/* Guided phone checks and account recovery share the storefront's type scale. */
+.compat-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 0 0 36px;
+}
+.compat-overview > a {
+  padding: 17px 20px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 12px;
+  font-size: 15px;
+}
+.compat-overview > a:hover {
+  border-color: var(--purple);
+}
+#model-search-title,
+#phone-check-title {
+  scroll-margin-top: 135px;
+}
+.compat-overview strong {
+  color: var(--purple);
+  margin-right: 6px;
+}
+.compact-heading {
+  margin-bottom: 24px;
+}
+.compact-heading h2 {
+  font-size: clamp(27px, 3vw, 34px);
+  margin: 8px 0 12px;
+}
+.compact-heading p {
+  max-width: 660px;
+  font-size: 16px;
+}
+.step-kicker {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--purple);
+}
+.compat-search .device-toolbar {
+  flex-direction: column;
+  gap: 18px;
+}
+.compat-search .input-search {
+  max-width: 600px;
+  width: 100%;
+  min-height: 50px;
+}
+.compat-search .filter-tabs {
+  flex-wrap: wrap;
+}
+.device-result-count {
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+.device-card {
+  min-width: 0;
+  padding: 25px;
+}
+.device-card h3 {
+  font-size: 19px;
+  line-height: 1.4;
+}
+.device-card p {
+  font-size: 15px;
+  line-height: 1.7;
+}
+.device-card > div {
+  min-width: 0;
+}
+.compat-confirm {
+  margin: 40px 0 28px;
+  padding: 32px;
+}
+.device-select {
+  margin-top: 16px;
+  min-height: 44px;
+  white-space: normal;
+  text-align: left;
+}
+.device-card.selected {
+  border-color: var(--purple);
+  background: #faf8ff;
+}
+.compat-model-field {
+  max-width: 680px;
+  margin-bottom: 32px;
+}
+.compat-question:disabled {
+  opacity: 0.65;
+}
+.compat-result .text-link + .text-link {
+  margin-left: 20px;
+}
+.compat-reset {
+  margin-top: 20px;
+  text-align: left;
+}
+.checkout-device-check {
+  border: 1px solid var(--line);
+  background: var(--lavender);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 24px 0;
+  overflow-wrap: anywhere;
+}
+.checkout-device-check.ready {
+  background: #edf7ef;
+}
+.checkout-device-check h3 {
+  font-size: 18px;
+  margin-bottom: 9px;
+}
+.checkout-device-check p {
+  font-size: 15px;
+  line-height: 1.65;
+  margin-bottom: 14px;
+}
+.checkout-device-check .device-check-disclosure {
+  font-size: 14px;
+  margin: 12px 0 0;
+}
+.compat-confirm-intro {
+  max-width: 740px;
+  margin-bottom: 28px;
+}
+.compat-confirm-intro > svg {
+  color: var(--purple);
+  margin-bottom: 16px;
+}
+.compat-confirm-intro h2 {
+  font-size: 29px;
+  margin-top: 9px;
+  margin-bottom: 13px;
+}
+.compat-confirm-intro p {
+  font-size: 16px;
+}
+.compat-questions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.compat-question {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 22px;
+  margin: 0;
+}
+.compat-question legend {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.45;
+  padding: 0 5px;
+}
+.compat-question p {
+  font-size: 15px;
+  margin: 0 0 18px;
+  line-height: 1.7;
+}
+.compat-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.compat-choice {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 46px;
+  padding: 9px 13px;
+  font-size: 15px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.compat-choice input {
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--purple);
+}
+.compat-choice.selected {
+  background: var(--lavender);
+  border-color: var(--purple);
+}
+.compat-result {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 24px;
+  background: #f4f1fc;
+  border-radius: 12px;
+}
+.compat-result > svg {
+  color: var(--purple);
+  flex: 0 0 24px;
+}
+.compat-result h3 {
+  font-size: 21px;
+  line-height: 1.3;
+  margin-bottom: 10px;
+}
+.compat-result p {
+  font-size: 15px;
+  max-width: 760px;
+  margin-bottom: 18px;
+}
+.compat-result.ready {
+  background: #edf7ef;
+}
+.compat-result.ready > svg {
+  color: #34744a;
+}
+.compat-guides {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 28px;
+}
+.compat-guides h2 {
+  font-size: 26px;
+  margin: 10px 0 20px;
+}
+.compat-guides ol {
+  padding-left: 22px;
+  margin: 0 0 18px;
+}
+.compat-guides li {
+  font-size: 16px;
+  line-height: 1.75;
+  padding-left: 3px;
+  margin-bottom: 12px;
+}
+.compat-guides p {
+  font-size: 15px;
+  margin-bottom: 20px;
+}
+.guide-links {
+  display: flex;
+  gap: 14px 22px;
+  flex-wrap: wrap;
+}
+.login-layout {
+  max-width: 1060px;
+  margin: 64px auto 90px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 72px;
+  align-items: start;
+}
+.login-intro h1 {
+  font-size: clamp(38px, 4vw, 54px);
+  line-height: 1.13;
+  margin: 18px 0 22px;
+}
+.login-intro > p {
+  font-size: 17px;
+  max-width: 420px;
+}
+.login-benefits {
+  display: grid;
+  gap: 24px;
+  margin-top: 34px;
+}
+.login-benefit {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.login-benefit > svg {
+  flex-shrink: 0;
+  color: var(--purple);
+  margin-top: 2px;
+}
+.login-benefit h2 {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  line-height: 1.4;
+  margin-bottom: 5px;
+}
+.login-benefit p {
+  font-size: 15px;
+}
+.login-form-column {
+  min-width: 0;
+}
+.login-form-column .panel {
+  padding: 32px;
+}
+.login-form-column .panel h2 {
+  font-size: 28px;
+  line-height: 1.25;
+}
+.login-form-column .panel > p {
+  margin: 17px 0 24px;
+  font-size: 15px;
+}
+.account-quick-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.orders-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding-top: 22px;
+  font-size: 15px;
+}
+.order-count {
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+.email-resend {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.email-resend p {
+  font-size: 14px;
+  margin-top: 10px;
+  max-width: 620px;
+}
+.email-resend .button {
+  white-space: normal;
+  text-align: left;
+}
+.order-lines > div {
+  min-width: 0;
+}
+.order-lines p {
+  overflow-wrap: anywhere;
+}
+.order-card-top > div {
+  min-width: 0;
+}
+@media (max-width: 850px) {
+  .compat-overview,
+  .compat-questions,
+  .compat-guides,
+  .login-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .compat-overview {
+    gap: 10px;
+  }
+  .login-layout {
+    max-width: 600px;
+    gap: 32px;
+    margin-top: 40px;
+  }
+  .login-benefits {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+  }
+  .login-intro h1 br {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .compat-confirm,
+  .login-form-column .panel {
+    padding: 23px;
+  }
+  .compat-question {
+    padding: 18px 14px;
+  }
+  .compat-result {
+    padding: 20px 16px;
+    gap: 10px;
+  }
+  .compat-result h3 {
+    font-size: 20px;
+  }
+  .compat-choices {
+    gap: 7px;
+  }
+  .compat-choice {
+    padding: 8px 10px;
+  }
+  .device-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .device-card {
+    padding: 22px;
+  }
+  .login-benefits {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .order-card-top {
+    flex-wrap: wrap;
+  }
+  .order-lines {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .orders-pagination .button {
+    padding-inline: 15px;
+  }
+}
+@media (max-width: 480px) {
+  .field-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .compat-result {
+    flex-direction: column;
+  }
+  .compat-result > svg {
+    flex-basis: auto;
   }
 }

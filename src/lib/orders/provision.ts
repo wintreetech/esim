@@ -223,10 +223,14 @@ export async function fulfillOrder(orderId: string) {
       orderId,
     });
 }
-export async function runJobs(limit = 5) {
+export async function runJobs(
+  limit = 5,
+  scope?: { orderId: string; kind: "EMAIL" },
+) {
   const now = new Date();
   const jobs = await db().fulfillmentJob.findMany({
     where: {
+      ...scope,
       runAfter: { lte: now },
       OR: [
         { status: "PENDING" },

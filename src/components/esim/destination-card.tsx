@@ -5,10 +5,8 @@ import type { PublicDestination } from "@/lib/catalog";
 import { Price } from "@/components/ui/price";
 export function DestinationCard({
   destination: d,
-  rate,
 }: {
   destination: PublicDestination;
-  rate: number;
 }) {
   const price = d.plans.length
     ? Math.min(...d.plans.map((p) => p.retailPrice))
@@ -24,7 +22,7 @@ export function DestinationCard({
         />
         <span className="flag-bubble">{d.flagEmoji}</span>
         {d.slug === "japan" && (
-          <span className="photo-badge">A traveler favorite</span>
+          <span className="photo-badge">Discover Japan</span>
         )}
       </div>
       <div className="destination-info">
@@ -35,7 +33,7 @@ export function DestinationCard({
               <>
                 From{" "}
                 <strong>
-                  <Price cents={price} rate={rate} />
+                  <Price cents={price} />
                 </strong>
               </>
             ) : (
